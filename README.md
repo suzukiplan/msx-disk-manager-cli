@@ -7,7 +7,7 @@
 - [ ] Create New Disk Image
 - [x] Dump Disk Information
 - [x] List
-- [ ] Copy to Local
+- [x] Copy to Local
 
 ## Pre-requests
 
