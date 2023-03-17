@@ -31,6 +31,7 @@
 
 #define MAX_FILES 112
 
+int bas2txt(FILE* stream, unsigned char* cBuf); // bas2txt.cpp
 static unsigned char diskImage[1440][512];
 
 // NOTE: Boundary-unaware data structure to be expanded at read time
@@ -117,6 +118,7 @@ static bool isLittleEndian()
 #define BIT_INFO   0b00000010
 #define BIT_LS     0b00000100
 #define BIT_CP     0b00001000
+#define BIT_CAT    0b00010000
 
 static void showUsage(int bit)
 {
@@ -125,6 +127,7 @@ static void showUsage(int bit)
     if (bit & BIT_INFO) puts("- information ..... dskmgr image.dsk info");
     if (bit & BIT_LS) puts("- list files ...... dskmgr image.dsk ls");
     if (bit & BIT_CP) puts("- copy to local ... dskmgr image.dsk cp filename");
+    if (bit & BIT_CAT) puts("- stdout file  .... dskmgr image.dsk cat filename");
 }
 
 static void extractDirectoryFromDisk()
@@ -409,12 +412,45 @@ static void wr(FILE* fp, int di)
     }
 }
 
-static int cp(const char* dsk, char* displayName)
+static void wm(unsigned char* buf, int di)
 {
-    char localFileName[16];
-    char name[9];
-    char ext[4];
-    if (sizeof(localFileName) <= strlen(displayName)) {
+    int size = dir.entries[di].size;
+    int bp = boot.dataPosition;
+    // FATエントリを検索
+    for (int i = 0; i < fat.entryCount; i++) {
+        if (0 < fat.entries[i].clusterCount) {
+            for (int ii = 0; ii < fat.entries[i].clusterCount; ii++) {
+                if (fat.entries[i].cluster[ii] == dir.entries[di].cluster) {
+                    for (int j = ii; j < fat.entries[i].clusterCount; j++) {
+                        for (int k = 0; k < boot.clusterSize; k++) {
+                            int s = bp + (fat.entries[i].cluster[j] - 1) * boot.clusterSize + k;
+                            int n = size < boot.sectorSize ? size : boot.sectorSize;
+                            memcpy(buf, diskImage[s], n);
+                            buf += n;
+                            size -= n;
+                            if (size < 1) {
+                                return;
+                            }
+                        }
+                    }
+                    return;
+                }
+            }
+        }
+    }
+    // FATテーブルが見つからないのでディレクトリエントリの先頭クラスタからシーケンシャルに読み出す
+    // ※MSXのディスクのFATは概ね壊れているのでこのケースに読み出しが行われる
+    bp += (dir.entries[di].cluster - 1) * boot.clusterSize;
+    while (0 < size && bp < boot.numberOfSector) {
+        int n = size < boot.sectorSize ? size : boot.sectorSize;
+        memcpy(buf, diskImage[bp++], n);
+        size -= n;
+    }
+}
+
+static int parseDisplayName(char* displayName, char* localFileName, char* name, char* ext)
+{
+    if (16 <= strlen(displayName)) {
         puts("File not found (invalid length)");
         return 4;
     }
@@ -443,6 +479,16 @@ static int cp(const char* dsk, char* displayName)
     for (; i < 3; i++) ext[i] = ' ';
     for (i = 0; name[i]; i++) name[i] = toupper(name[i]);
     for (; i < 8; i++) name[i] = ' ';
+    return 0;
+}
+
+static int cp(const char* dsk, char* displayName)
+{
+    char localFileName[16];
+    char name[9];
+    char ext[4];
+    int parseError = parseDisplayName(displayName, localFileName, name, ext);
+    if (parseError) return parseError;
     if (!readDisk(dsk)) return 2;
     for (int i = 0; i < dir.entryCount; i++) {
         if (dir.entries[i].removed) continue;
@@ -451,6 +497,34 @@ static int cp(const char* dsk, char* displayName)
                 FILE* fp = fopen(localFileName, "wb");
                 wr(fp, i);
                 fclose(fp);
+                return 0;
+            }
+        }
+    }
+    puts("File not found");
+    return 4;
+}
+
+static int cat(const char* dsk, char* displayName)
+{
+    char localFileName[16];
+    char name[9];
+    char ext[4];
+    int parseError = parseDisplayName(displayName, localFileName, name, ext);
+    if (parseError) return parseError;
+    if (!readDisk(dsk)) return 2;
+    for (int i = 0; i < dir.entryCount; i++) {
+        if (dir.entries[i].removed) continue;
+        if (strcmp(dir.entries[i].name, name) == 0) {
+            if (strcmp(dir.entries[i].ext, ext) == 0) {
+                if (0 == strncmp(ext, "BAS", 3)) {
+                    unsigned char* buf = (unsigned char*)malloc(dir.entries[i].size);
+                    wm(buf, i);
+                    bas2txt(stdout, buf);
+                    free(buf);
+                } else {
+                    wr(stdout, i);
+                }
                 return 0;
             }
         }
@@ -668,6 +742,12 @@ int main(int argc, char* argv[])
             return 1;
         }
         return cp(argv[1], argv[3]);
+    } else if (0 == strcmp(argv[2], "cat")) {
+        if (argc != 4) {
+            showUsage(BIT_CAT);
+            return 1;
+        }
+        return cat(argv[1], argv[3]);
     } else if (0 == strcmp(argv[2], "create")) {
         if (argc < 3) {
             showUsage(BIT_CREATE);

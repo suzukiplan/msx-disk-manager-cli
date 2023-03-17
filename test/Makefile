@@ -6,3 +6,5 @@ all:
 	../dskmgr ./image.dsk ls
 	../dskmgr ./image.dsk cp hello.bas
 	../dskmgr ./image.dsk cp hoge.bas
+	../dskmgr ./image.dsk cat hello.bas
+	../dskmgr ./image.dsk cat hoge.bas

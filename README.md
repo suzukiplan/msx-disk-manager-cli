@@ -23,7 +23,7 @@
 
 ```bash
 % make
-clang++ -o dskmgr src/dskmgr.cpp
+clang++ -o dskmgr src/dskmgr.cpp src/bas2txt.cpp
 cd test && make
 ../dskmgr ./wmsx.dsk cp hello.bas
 ../dskmgr ./wmsx.dsk cp hoge.bas
@@ -53,6 +53,11 @@ Available Entries: 2/3
 00:----w  HOGE.BAS            30 bytes  1980.00.00 00:00:00  (C:3, S:14)
 ../dskmgr ./image.dsk cp hello.bas
 ../dskmgr ./image.dsk cp hoge.bas
+../dskmgr ./image.dsk cat hello.bas
+10 PRINT"HELLO,WORLD!"
+../dskmgr ./image.dsk cat hoge.bas
+10 CLS
+20 PRINT"_____HOGE____"
 ```
 
 ## How to Use
@@ -90,7 +95,17 @@ Available Entries: 2/3
 ./dskmgr image.dsk cp filename
 ```
 
-- `filename` で指定した `image.dsk` 内のファイルをローカルへコピーします。
+- `filename` で指定した `image.dsk` 内のファイルをローカルへコピーします
 - `filename` は大文字と小文字を区別しません（全て大文字と解釈されます）
 
 > なお、MSX-BASICで保存したリストはテキスト形式ではなく中間言語形式に変換されたもののようです。つまり、テキスト形式でのポータビリティはありません。（BASICソースコードを中間言語形式に変換するツールが必要）
+
+### Stdout to Local
+
+```bash
+./dskmgr image.dsk cat filename
+```
+
+- `filename` で指定した `image.dsk` 内のファイルをローカルへ標準出力します
+- `filename` は大文字と小文字を区別しません（全て大文字と解釈されます）
+- 拡張子が `.BAS` の場合、テキストに変換して標準出力します

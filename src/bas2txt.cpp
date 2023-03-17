@@ -1,25 +1,12 @@
-// Copied from http://ryusendo.rdy.jp/?page_id=268
-//
-//  main.cpp
-//  BAStoText
-//
-//  Created by on 13/09/20.
-//  Copyright (c) 2013年 __MyCompanyName__. All rights reserved.
-//
- 
+// Original: http://ryusendo.rdy.jp/?page_id=268
+// Modified by Y.Suzuki 
 #include <iostream>
- 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
- 
-unsigned char * fileread(const char * fpath);
-int hextoi(const char* srcStr);
-int scanTable(int srcCode);
- 
-unsigned char * cBuf;
- 
-const char* wordTable[]={">","EE","CMD","D7","ERR","E2","LIST","93","PAINT","BF","SPRITE","C7",
+  
+static const char* wordTable[]={
+    ">","EE","CMD","D7","ERR","E2","LIST","93","PAINT","BF","SPRITE","C7",
     "=","EF","COLOR","BD","ERROR","A6","LLIST","9E","PDL","FFA4","SQR","FF87",
     "<","F0","CONT","99","EXP","FF8B","LOAD","B5","PEEK","FF97","STEP","DC",
     "+","F1","COPY","D6","FIELD","B1","LOC","FFAC","PLAY","C1","STICK","FFA2",
@@ -48,116 +35,8 @@ const char* wordTable[]={">","EE","CMD","D7","ERR","E2","LIST","93","PAINT","BF"
     "CLOAD","9B","EQV","F9","LET","88","OR","F7","SOUND","C4",
     "CLOSE","B4","ERASE","A5","LFILES","BB","OUT","9C","SPACE$","FF99",
     "CLS","9F","ERL","E1","LINE","AF","PAD","FFA5","SPC(","DF","",""};
- 
- 
-int main (int argc, const char * argv[])
-{
- 
-    int x;
-    int lp;
-    int ofs;
-    int lineNum;
-    int scode;
-    int ivalue,linevalue;
-    char tmpc[32];
-    int itmp;
-     
-     
-    if (argc<2){
-        printf("例:bastxt [msxbasic.bas]\n");
-        return(0);
-    }
-     
-     
-    cBuf=fileread(argv[1]);
-    x=1;
-    ofs=0x8000;
-    lp=(cBuf[x+1]<<8) | cBuf[x];x+=2;
-    while (lp !=0 ) {
-        lineNum=(cBuf[x+1]<<8) | cBuf[x];x+=2;
-        printf("%d ",lineNum);
-        while (cBuf[x]) {
-            scode = cBuf[x++];
-            switch (scode) {
-                case 0xff:
-                    scode=(scode<<8) | (cBuf[x++]);
-                    printf("%s",wordTable[scanTable(scode)]);
-                    break;
-                case 0x3a:
-                    if (cBuf[x]>0x81) {
-                        scode=(scode<<8) | (cBuf[x++]);
-                        if (cBuf[x] == 0xe6) {x++;printf("'");}
-                        else{
-                            itmp=scanTable(scode);
-                            if (itmp>0){
-                                printf("%s",wordTable[itmp]);
-                            }else{
-                                x--;
-                            }
-                        }
-                    }else{
-                        printf(":");
-                    }
-                    break;
-                case 0x0c:  //hex num
-                    ivalue=(cBuf[x]) | (cBuf[x+1]<<8);
-                    x+=2;
-                    printf("&H%X",ivalue);
-                    break;
-                case 0x0e:  //line num(line)
-                    ivalue=(cBuf[x]) | (cBuf[x+1]<<8);
-                    x+=2;
-                    printf("%X",ivalue);
-                    break;
-                case 0x0d:  //line num(addr)
-                    ivalue=(cBuf[x]) | (cBuf[x+1]<<8);
-                    ivalue-=ofs;
-                    linevalue=(cBuf[ivalue]) | (cBuf[ivalue+1]<<8);
-                    printf("%d",linevalue);
-                    x+=2;
-                    break;
-                case 0x0f:  //num 10-255
-                    ivalue=(cBuf[x]);
-                    x+=1;
-                    printf("%d",ivalue);
-                    break;
-                case 0x11:  //num 0
-                case 0x12:  //num 1
-                case 0x13:  //num 2
-                case 0x14:  //num 3
-                case 0x15:  //num 4
-                case 0x16:  //num 5
-                case 0x17:  //num 6
-                case 0x18:  //num 7
-                case 0x19:  //num 8
-                case 0x1a:  //num 9
-                    printf("%d",scode-0x11);
-                    break;
-                case 0x1c:  //int num
-                    ivalue=(cBuf[x]) | (cBuf[x+1]<<8);
-                    x+=2;
-                    printf("%d",ivalue);
-                    break;
-                default:
-                    if (scode<0x80){
-                        tmpc[0]=scode;
-                        tmpc[1]=0;
-                        printf("%s",tmpc);
-                    }else{
-                        printf("%s",wordTable[scanTable(scode)]);
-                    }
-                    break;
-            }
-        }
-        printf("\n");
-        x=lp-ofs;
-        lp=(cBuf[x+1]<<8) | cBuf[x];x+=2;
-    }
-     
-    return 0;
-}
- 
-int hextoi(const char* srcStr)
+
+static int hextoi(const char* srcStr)
 {
     int value=0;
     int cc,cb;
@@ -175,8 +54,8 @@ int hextoi(const char* srcStr)
     }
     return value;
 }
- 
-int scanTable(int srcCode)
+
+static int scanTable(int srcCode)
 {
     int i=0;
     while (wordTable[i][0]) {
@@ -187,21 +66,102 @@ int scanTable(int srcCode)
     }
     return -1;
 }
- 
-unsigned char * fileread(const char * fpath)
+
+int bas2txt(FILE* stream, unsigned char* cBuf)
 {
-    FILE *fr;
-    fpos_t sz=0;
-    unsigned char * buf;
+ 
+    int x;
+    int lp;
+    int ofs;
+    int lineNum;
+    int scode;
+    int ivalue,linevalue;
+    char tmpc[32];
+    int itmp;
      
-    fr=fopen(fpath, "rb");
-    if (!fr) return NULL;
-    fseek(fr,0,SEEK_END);
-    fgetpos(fr,&sz);
-    fseek(fr,0,SEEK_SET);
-    if (sz>0x10000) return NULL;
-    buf=(unsigned char*)malloc(sz);
-    fread(buf, 1, sz, fr);
-    fclose(fr);
-    return buf;
+    x=1;
+    ofs=0x8000;
+    lp=(cBuf[x+1]<<8) | cBuf[x];x+=2;
+    while (lp !=0 ) {
+        lineNum=(cBuf[x+1]<<8) | cBuf[x];x+=2;
+        fprintf(stream, "%d ",lineNum);
+        while (cBuf[x]) {
+            scode = cBuf[x++];
+            switch (scode) {
+                case 0xff:
+                    scode=(scode<<8) | (cBuf[x++]);
+                    fprintf(stream, "%s", wordTable[scanTable(scode)]);
+                    break;
+                case 0x3a:
+                    if (cBuf[x]>0x81) {
+                        scode=(scode<<8) | (cBuf[x++]);
+                        if (cBuf[x] == 0xe6) {x++;fprintf(stream,"'");}
+                        else{
+                            itmp=scanTable(scode);
+                            if (itmp>0){
+                                fprintf(stream, "%s",wordTable[itmp]);
+                            }else{
+                                x--;
+                            }
+                        }
+                    }else{
+                        fprintf(stream, ":");
+                    }
+                    break;
+                case 0x0c:  //hex num
+                    ivalue=(cBuf[x]) | (cBuf[x+1]<<8);
+                    x+=2;
+                    fprintf(stream,"&H%X",ivalue);
+                    break;
+                case 0x0e:  //line num(line)
+                    ivalue=(cBuf[x]) | (cBuf[x+1]<<8);
+                    x+=2;
+                    fprintf(stream,"%X",ivalue);
+                    break;
+                case 0x0d:  //line num(addr)
+                    ivalue=(cBuf[x]) | (cBuf[x+1]<<8);
+                    ivalue-=ofs;
+                    linevalue=(cBuf[ivalue]) | (cBuf[ivalue+1]<<8);
+                    fprintf(stream,"%d",linevalue);
+                    x+=2;
+                    break;
+                case 0x0f:  //num 10-255
+                    ivalue=(cBuf[x]);
+                    x+=1;
+                    fprintf(stream,"%d",ivalue);
+                    break;
+                case 0x11:  //num 0
+                case 0x12:  //num 1
+                case 0x13:  //num 2
+                case 0x14:  //num 3
+                case 0x15:  //num 4
+                case 0x16:  //num 5
+                case 0x17:  //num 6
+                case 0x18:  //num 7
+                case 0x19:  //num 8
+                case 0x1a:  //num 9
+                    fprintf(stream,"%d",scode-0x11);
+                    break;
+                case 0x1c:  //int num
+                    ivalue=(cBuf[x]) | (cBuf[x+1]<<8);
+                    x+=2;
+                    fprintf(stream,"%d",ivalue);
+                    break;
+                default:
+                    if (scode<0x80){
+                        tmpc[0]=scode;
+                        tmpc[1]=0;
+                        fprintf(stream,"%s",tmpc);
+                    }else{
+                        fprintf(stream,"%s",wordTable[scanTable(scode)]);
+                    }
+                    break;
+            }
+        }
+        fprintf(stream,"\n");
+        x=lp-ofs;
+        lp=(cBuf[x+1]<<8) | cBuf[x];x+=2;
+    }
+     
+    return 0;
 }
