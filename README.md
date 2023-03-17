@@ -1,4 +1,4 @@
-# SUZUKI PLAN - MSX Disk Manager for CLI
+# SUZUKI PLAN - MSX Disk Manager for CLI [![CircleCI](https://dl.circleci.com/status-badge/img/gh/suzukiplan/msx-disk-manager-cli/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/suzukiplan/msx-disk-manager-cli/tree/master)
 
 所要で MSX のディスクイメージを作りたかったのですが、Windowsのフリーソフトを使うしか今のところ手段が無いので、私が必要とする最低限の機能要件を満たすディスクイメージ操作ユーティリティを作ってみました。
 
