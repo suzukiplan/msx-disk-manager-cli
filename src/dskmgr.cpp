@@ -326,13 +326,13 @@ static void wr(FILE* fp, int di)
     for (int i = 0; i < fat.entryCount; i++) {
         if (0 < fat.entries[i].clusterCount) {
             for (int ii = 0; ii < fat.entries[i].clusterCount; ii++) {
-                printf("cmp %d %d\n", fat.entries[i].cluster[ii], dir.entries[di].cluster);
+                //printf("cmp %d %d\n", fat.entries[i].cluster[ii], dir.entries[di].cluster);
                 if (fat.entries[i].cluster[ii] == dir.entries[di].cluster) {
                     for (int j = ii; j < fat.entries[i].clusterCount; j++) {
                         for (int k = 0; k < boot.clusterSize; k++) {
                             int s = bp + (fat.entries[i].cluster[j] - 2) * boot.clusterSize + k;
                             int n = size < boot.secotrSize ? size : boot.secotrSize;
-                            printf("write sector: %d (%dbytes)\n", s, n);
+                            //printf("write sector: %d (%dbytes)\n", s, n);
                             fwrite(diskImage[s], 1, n, fp);
                             size -= n;
                             if (size < 1) {
@@ -345,6 +345,7 @@ static void wr(FILE* fp, int di)
             }
         }
     }
+    puts("FAT not found");
 }
 
 static int cp(const char* dsk, char* displayName)
