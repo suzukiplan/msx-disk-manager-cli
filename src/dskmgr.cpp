@@ -255,6 +255,7 @@ static int info(const char* dsk)
 {
     if (!readDisk(dsk)) return 2;
     puts("[Boot Sector]");
+    printf("            OEM: %s\n", boot.oemName);
     printf("       Media ID: 0x%02X\n", boot.mediaId);
     printf("    Sector Size: %d bytes\n", boot.secotrSize);
     printf("  Total Sectors: %d\n", boot.numberOfSector);
