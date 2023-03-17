@@ -271,7 +271,7 @@ static int info(const char* dsk)
     int availableEntries = 0;
     for (int i = 0; i < fat.entryCount; i++) {
         if (0 < fat.entries[i].clusterCount) {
-            printf("- Entry#%d = %d bytes (%d cluster) ... ", i, boot.clusterSize * boot.secotrSize * fat.entries[i].clusterCount, fat.entries[i].clusterCount);
+            printf("- Entry#%d = %d bytes (%d cluster) ... %d: ", i, boot.clusterSize * boot.secotrSize * fat.entries[i].clusterCount, fat.entries[i].clusterCount, fat.entries[i].cluster[0]);
             bool found = false;
             for (int j = 0; j < dir.entryCount; j++) {
                 for (int jj = 0; jj < fat.entries[i].clusterCount; jj++) {
