@@ -60,7 +60,7 @@ Available Entries: 2/3
 ### Create New Disk Image
 
 ```bash
-./dskmgr create image.dsk [files]
+./dskmgr image.dsk create [files]
 ```
 
 - 新規のフォーマット済みのディスクイメージファイル (`image.dsk`) を作成します
@@ -71,7 +71,7 @@ Available Entries: 2/3
 ### Dump Disk Information
 
 ```bash
-./dskmgr info image.dsk
+./dskmgr image.dsk info
 ```
 
 ディスクのブートセクタとFATの内容をダンプします。
@@ -79,7 +79,7 @@ Available Entries: 2/3
 ### List
 
 ```bash
-./dskmgr ls image.dsk
+./dskmgr image.dsk ls
 ```
 
 ディスクに格納されているファイルの一覧を表示します
@@ -87,7 +87,7 @@ Available Entries: 2/3
 ### Copy to Local
 
 ```bash
-./dskmgr cp image.dsk filename
+./dskmgr image.dsk cp filename
 ```
 
 - `filename` で指定した `image.dsk` 内のファイルをローカルへコピーします。
