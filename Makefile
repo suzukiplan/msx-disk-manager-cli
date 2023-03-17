@@ -3,6 +3,9 @@ all:
 
 test: all
 	@echo ========================================
-	./dskmgr test/wmsx.dsk info
+	cd test && ../dskmgr ./wmsx.dsk info
 	@echo ========================================
-	./dskmgr test/wmsx.dsk ls
+	cd test && ../dskmgr ./wmsx.dsk ls
+	@echo ========================================
+	cd test && ../dskmgr ./wmsx.dsk cp hello.bas
+	cd test && ../dskmgr ./wmsx.dsk cp hoge.bas
