@@ -1,8 +1,19 @@
 # SUZUKI PLAN - MSX Disk Manager for CLI [![CircleCI](https://dl.circleci.com/status-badge/img/gh/suzukiplan/msx-disk-manager-cli/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/suzukiplan/msx-disk-manager-cli/tree/master)
 
-所要で MSX のディスクイメージを作りたかったのですが、Windowsのフリーソフトを使うしか今のところ手段が無いので、私が必要とする最低限の機能要件を満たすディスクイメージ操作ユーティリティを作ってみました。
+Windows, Linux, macOS などで使用できる fMSX 形式のディスクイメージファイル（.dsk）用のコマンドライン版ユーティリティです。
 
-> 要望などあれば [issues](https://github.com/suzukiplan/msx-disk-manager-cli/issues) を切っていただければ対応するかもしれません。
+> 要望などあれば [issues](https://github.com/suzukiplan/msx-disk-manager-cli/issues) を切っていただければ対応するかもしれません。（もちろん Pull Request も歓迎します）
+
+## Features
+
+- ローカルファイルからディスクイメージファイルを生成
+- ディスクイメージファイルの各種データ確認
+- ディスクイメージファイル内の特定ファイルをローカルへ取得（コピー）
+- ディスクイメージファイル内の特定ファイルをローカルへ標準出力（.BASファイルは中間言語形式からテキスト形式に変換される）
+
+(TODO)
+
+- ローカルファイルからディスクイメージファイルを生成する時に .BAS ファイルをテキスト形式から中間言語形式に変換できるようにしたい
 
 ## Pre-requests
 
@@ -19,7 +30,7 @@
 2. `create` コマンドで新規ディスクイメージを生成しつつ 1 で読み込んだ MSX-BASIC のコードを配置
 3. 生成したディスクイメージの情報を `info` コマンドで確認
 4. 生成したディスクイメージの情報を `ls` コマンドで確認
-5. 作成したディスクイメージからMSX-BASICのコードを `cp` コマンドで読み込む（バイナリ差分が出ない事を git 上で確認できる）
+5. 作成したディスクイメージからMSX-BASICのコードを `cp` コマンドで読み込む（バイナリ差分が出ない事を git 上で確認用）
 6. 作成したディスクイメージからMSX-BASICのコードを `cat` コマンドで標準出力
 
 ```bash
@@ -61,12 +72,12 @@ Available Entries: 2/3
 20 PRINT"_____HOGE____"
 ```
 
-## How to Use
+## Manual
 
 |Command|Outline|
 |:-:|:-|
 |[create](#create)|新規ディスクイメージファイルを生成|
-|[info](#info)|ディスクのブートセクタとFATの内容をダンプ|
+|[info](#info)|ディスクのブートセクタと FAT (FAT12) の内容をダンプ|
 |[ls](#ls)|ディスクに格納されているファイルの一覧を表示|
 |[cp](#cp)|ディスクに格納されているファイルをローカルへコピー|
 |[cat](#cat)|ディスクに格納されているファイルをローカルで標準出力|
@@ -78,9 +89,9 @@ Available Entries: 2/3
 ```
 
 - 新規のフォーマット済みのディスクイメージファイル (`image.dsk`) を作成します
-- `files` (複数指定可能) へ指定したファイルが書き込まれたディスクイメージが生成されます
+- `files` (複数指定可能) へ指定したファイルが書き込まれた `image.dsk` が生成されます
   - ファイルサイズやファイル数の上限を超える場合は `Disk Full` エラーで書き込みが失敗します
-- `files` を指定しなければ空のディスクイメージが生成されます
+- `files` を指定しなければ空の `image.dsk` が生成されます
 
 ### info
 
@@ -88,7 +99,7 @@ Available Entries: 2/3
 ./dskmgr image.dsk info
 ```
 
-ディスクのブートセクタとFATの内容をダンプします
+`image.dsk` のブートセクタと FAT (FAT12) の内容をダンプします
 
 ### ls
 
@@ -96,7 +107,7 @@ Available Entries: 2/3
 ./dskmgr image.dsk ls
 ```
 
-ディスクに格納されているファイルの一覧を表示します
+`image.dsk` に格納されているファイルの一覧を表示します
 
 ### cp
 
@@ -107,7 +118,7 @@ Available Entries: 2/3
 - `filename` で指定した `image.dsk` 内のファイルをローカルへコピーします
 - `filename` は大文字と小文字を区別しません（全て大文字と解釈されます）
 
-> BASIC の場合は `cat` コマンドを使えば中間言語からテキスト形式に変換することができます。
+> BASIC (.BASファイル) の場合は `cat` コマンドを使えば中間言語からテキスト形式に変換することができます。
 
 ### cat
 
