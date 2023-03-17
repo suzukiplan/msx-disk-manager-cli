@@ -46,8 +46,8 @@ Fat ID: 0xF9
 Available Entries: 0/3
 ========================================
 cd test && ../dskmgr ./wmsx.dsk ls
-----w  HELLO.BAS           23 bytes  2023.03.17 09:37:56  (C:2, S:12)
-----w  HOGE.BAS            30 bytes  2023.03.17 09:38:54  (C:3, S:14)
+00:----w  HELLO.BAS           23 bytes  2023.03.17 09:37:56  (C:2, S:12)
+00:----w  HOGE.BAS            30 bytes  2023.03.17 09:38:54  (C:3, S:14)
 ========================================
 cd test && ../dskmgr ./wmsx.dsk cp hello.bas
 cd test && ../dskmgr ./wmsx.dsk cp hoge.bas

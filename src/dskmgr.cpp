@@ -70,6 +70,7 @@ static struct Directory {
         unsigned short cluster;
         unsigned int size;
         struct Attribute {
+            unsigned char raw;
             bool dirent;
             bool volumeLabel;
             bool systemFile;
@@ -122,6 +123,7 @@ static void extractDirectoryFromDisk()
             ptr += 8;
             memcpy(dir.entries[dir.entryCount].ext, ptr, 3);
             ptr += 3;
+            dir.entries[dir.entryCount].attr.raw = *ptr;
             dir.entries[dir.entryCount].attr.dirent = (*ptr) & 0b00010000 ? true : false;
             dir.entries[dir.entryCount].attr.volumeLabel = (*ptr) & 0b00001000 ? true : false;
             dir.entries[dir.entryCount].attr.systemFile = (*ptr) & 0b00000100 ? true : false;
@@ -299,7 +301,8 @@ static int ls(const char* dsk)
     if (!readDisk(dsk)) return 2;
     for (int i = 0; i < dir.entryCount; i++) {
         if (dir.entries[i].removed) continue;
-        printf("%c%c%c%c%c  %-12s  %8u bytes  %4d.%02d.%02d %02d:%02d:%02d  (C:%d, S:%d)\n"
+        printf("%02X:%c%c%c%c%c  %-12s  %8u bytes  %4d.%02d.%02d %02d:%02d:%02d  (C:%d, S:%d)\n"
+            , dir.entries[i].attr.raw
             , dir.entries[i].attr.dirent ? 'd' : '-'
             , dir.entries[i].attr.volumeLabel ? 'v' : '-'
             , dir.entries[i].attr.systemFile ? 's' : '-'
