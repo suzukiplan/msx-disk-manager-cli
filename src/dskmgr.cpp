@@ -130,7 +130,7 @@ static void extractDirectoryFromDisk()
             dir.entries[dir.entryCount].attr.readOnly = (*ptr) & 0b00000001 ? true : false;
             ptr += 11;
             dir.entries[dir.entryCount].date.minute = ((*ptr) & 0b11100000) >> 5;
-            dir.entries[dir.entryCount].date.second = (*ptr) & 0b00011111;
+            dir.entries[dir.entryCount].date.second = ((*ptr) & 0b00011111) << 1;
             ptr++;
             dir.entries[dir.entryCount].date.hour = ((*ptr) & 0b11111000) >> 3;
             dir.entries[dir.entryCount].date.minute += ((*ptr) & 0b00000111) << 3;
