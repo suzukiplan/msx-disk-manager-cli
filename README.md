@@ -2,7 +2,7 @@
 
 所要で MSX のディスクイメージを作りたかったのですが、Windowsのフリーソフトを使うしか今のところ手段が無いので、私が必要とする最低限の機能要件を満たすディスクイメージ操作ユーティリティを作ってみました。
 
-> 要望などあれば [issues](./issues) を切っていただければ対応するかもしれません。
+> 要望などあれば [issues](https://github.com/suzukiplan/msx-disk-manager-cli/issues) を切っていただければ対応するかもしれません。
 
 ## Pre-requests
 
