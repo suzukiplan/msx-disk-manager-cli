@@ -1,4 +1,4 @@
-# SUZUKI PLAN - MSX Disk Manager for CLI [![CircleCI](https://dl.circleci.com/status-badge/img/gh/suzukiplan/msx-disk-manager-cli/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/suzukiplan/msx-disk-manager-cli/tree/master)
+# MSX Disk Manager for CLI [![CircleCI](https://dl.circleci.com/status-badge/img/gh/suzukiplan/msx-disk-manager-cli/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/suzukiplan/msx-disk-manager-cli/tree/master)
 
 Windows, Linux, macOS などで使用できる fMSX 形式のディスクイメージファイル（.dsk）用のコマンドライン版ユーティリティです。
 
