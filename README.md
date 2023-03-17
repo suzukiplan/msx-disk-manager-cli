@@ -62,7 +62,15 @@ Available Entries: 2/3
 
 ## How to Use
 
-### Create New Disk Image
+|Command|Outline|
+|:-:|:-|
+|[create](#create)|新規ディスクイメージファイルを生成|
+|[info](#info)|ディスクのブートセクタとFATの内容をダンプ|
+|[ls](#ls)|ディスクに格納されているファイルの一覧を表示|
+|[cp](#cp)|ディスクに格納されているファイルをローカルへコピー|
+|[cat](#cat)|ディスクに格納されているファイルをローカルで標準出力|
+
+### create
 
 ```bash
 ./dskmgr image.dsk create [files]
@@ -73,15 +81,15 @@ Available Entries: 2/3
   - ファイルサイズやファイル数の上限を超える場合は `Disk Full` エラーで書き込みが失敗します
 - `files` を指定しなければ空のディスクイメージが生成されます
 
-### Dump Disk Information
+### info
 
 ```bash
 ./dskmgr image.dsk info
 ```
 
-ディスクのブートセクタとFATの内容をダンプします。
+ディスクのブートセクタとFATの内容をダンプします
 
-### List
+### ls
 
 ```bash
 ./dskmgr image.dsk ls
@@ -89,7 +97,7 @@ Available Entries: 2/3
 
 ディスクに格納されているファイルの一覧を表示します
 
-### Copy to Local
+### cp
 
 ```bash
 ./dskmgr image.dsk cp filename
@@ -98,9 +106,9 @@ Available Entries: 2/3
 - `filename` で指定した `image.dsk` 内のファイルをローカルへコピーします
 - `filename` は大文字と小文字を区別しません（全て大文字と解釈されます）
 
-> なお、MSX-BASICで保存したリストはテキスト形式ではなく中間言語形式に変換されたもののようです。つまり、テキスト形式でのポータビリティはありません。（BASICソースコードを中間言語形式に変換するツールが必要）
+> BASIC の場合は `cat` コマンドを使えば中間言語からテキスト形式に変換することができます。
 
-### Stdout to Local
+### cat
 
 ```bash
 ./dskmgr image.dsk cat filename
