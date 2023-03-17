@@ -421,7 +421,7 @@ int main(int argc, char* argv[])
             return 1;
         }
         return info(argv[1]);
-    } else if (0 == strcmp(argv[2], "ls")) {
+    } else if (0 == strcmp(argv[2], "ls") || 0 == strcmp(argv[2], "dir")) {
         if (argc != 3) {
             showUsage(BIT_LS);
             return 1;
