@@ -669,7 +669,7 @@ int main(int argc, char* argv[])
         }
         return cp(argv[1], argv[3]);
     } else if (0 == strcmp(argv[2], "create")) {
-        if (argc < 4) {
+        if (argc < 3) {
             showUsage(BIT_CREATE);
             return 1;
         }
