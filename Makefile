@@ -1,5 +1,5 @@
 all:
-	clang++ -o dskmgr src/dskmgr.cpp src/bas2txt.cpp
+	clang++ --std=c++14 -o dskmgr src/dskmgr.cpp src/bas2txt.cpp
 	cd test && make
 
 format:
