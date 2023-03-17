@@ -1,34 +1,36 @@
-# SUZUKI PLAN - MSX Disk Manager for CLI **(WIP)**
+# SUZUKI PLAN - MSX Disk Manager for CLI
 
-所要で MSX のディスクイメージを作りたかったのですが、「Windowsのフリーソフトを使うように」という情報しかなく、Windowsが動くパソコンが壊れていて動かないので mac でも動く MSX のディスクユーティリティが欲しくて作成中です。
+所要で MSX のディスクイメージを作りたかったのですが、Windowsのフリーソフトを使うしか今のところ手段が無いので、私が必要とする最低限の機能要件を満たすディスクイメージ操作ユーティリティを作ってみました。
 
-## WIP status
-
-- [ ] Create New Disk Image
-- [x] Dump Disk Information
-- [x] List
-- [x] Copy to Local
+> 要望などあれば [issues](./issues) を切っていただければ対応するかもしれません。
 
 ## Pre-requests
 
 - GNU Make
 - CLANG (C++)
 
-## How to Build
+## How to Build and Test
+
+`make` を実行すればビルドとテストが実行されます。
+
+テストで行っていること:
+
+1. WebMSXで作成したディスクイメージから MSX-BASIC のコードを `cp` コマンドで読み込む
+2. create コマンドで新規ディスクイメージを生成しつつ 1 で読み込んだ MSX-BASIC のコードを配置
+3. 生成したディスクイメージの `info` を確認
+4. 生成したディスクイメージの `ls` を確認
+5. 作成したディスクイメージから再度MSX-BASICのコードを読み込む（バイナリ差分が出ない事を git 上で確認できる）
 
 ```bash
-make
-```
-
-## How to Test
-
-```bash
-% make test
+% make
 clang++ -o dskmgr src/dskmgr.cpp
-========================================
-cd test && ../dskmgr ./wmsx.dsk info
+cd test && make
+../dskmgr ./wmsx.dsk cp hello.bas
+../dskmgr ./wmsx.dsk cp hoge.bas
+../dskmgr ./image.dsk create hello.bas hoge.bas
+../dskmgr ./image.dsk info
 [Boot Sector]
-            OEM: WMSX    
+            OEM: SZKPLN01
        Media ID: 0xF9
     Sector Size: 512 bytes
   Total Sectors: 1440
@@ -43,14 +45,14 @@ Creatable Files: 112
 
 [FAT]
 Fat ID: 0xF9
-Available Entries: 0/3
-========================================
-cd test && ../dskmgr ./wmsx.dsk ls
-00:----w  HELLO.BAS           23 bytes  2023.03.17 09:37:56  (C:2, S:12)
-00:----w  HOGE.BAS            30 bytes  2023.03.17 09:38:54  (C:3, S:14)
-========================================
-cd test && ../dskmgr ./wmsx.dsk cp hello.bas
-cd test && ../dskmgr ./wmsx.dsk cp hoge.bas
+- Entry#1 = 1024 bytes (1 cluster) ... 2: HELLO.BAS
+- Entry#2 = 1024 bytes (1 cluster) ... 3: HOGE.BAS
+Available Entries: 2/3
+../dskmgr ./image.dsk ls
+00:----w  HELLO.BAS           23 bytes  1980.00.00 00:00:00  (C:2, S:12)
+00:----w  HOGE.BAS            30 bytes  1980.00.00 00:00:00  (C:3, S:14)
+../dskmgr ./image.dsk cp hello.bas
+../dskmgr ./image.dsk cp hoge.bas
 ```
 
 ## How to Use

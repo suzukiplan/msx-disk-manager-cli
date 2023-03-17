@@ -29,13 +29,15 @@
 #include <string.h>
 #include <ctype.h>
 
+#define MAX_FILES 112
+
 static unsigned char diskImage[1440][512];
 
 // NOTE: Boundary-unaware data structure to be expanded at read time
 static struct BootSector {
     unsigned char bootJump[3];
     unsigned char oemName[9];
-    unsigned short secotrSize;
+    unsigned short sectorSize;
     unsigned char clusterSize;
     unsigned short fatPosition;
     unsigned char fatCopy;
@@ -88,6 +90,23 @@ static struct Directory {
     } entries[128];
 } dir;
 
+static struct CreateFileInfo {
+    int entryCount;
+    struct Entry {
+        const char* originalPath;
+        char name[8];
+        char ext[3];
+        unsigned int size;
+        void* data;
+        int sectorSize;
+        int clusterSize;
+        unsigned short clusterStart;
+    } entries[MAX_FILES];
+    int totalCluster;
+    int totalSector;
+    int totalSize;
+} cfi;
+
 static bool isLittleEndian()
 {
     unsigned short endianCheck = 0x1234;
@@ -102,7 +121,7 @@ static bool isLittleEndian()
 static void showUsage(int bit)
 {
     puts("usage:");
-    if (bit & BIT_CREATE) puts("- create .......... dskmgr image.dsk create");
+    if (bit & BIT_CREATE) puts("- create .......... dskmgr image.dsk create [files]");
     if (bit & BIT_INFO) puts("- information ..... dskmgr image.dsk info");
     if (bit & BIT_LS) puts("- list files ...... dskmgr image.dsk ls");
     if (bit & BIT_CP) puts("- copy to local ... dskmgr image.dsk cp filename");
@@ -165,7 +184,7 @@ static void extractDirectoryFromDisk()
 static void extractFatFromDisk()
 {
     memset(&fat, 0, sizeof(fat));
-    int fatSize = boot.fatSize * boot.secotrSize;
+    int fatSize = boot.fatSize * boot.sectorSize;
     unsigned char* ptr = diskImage[boot.fatPosition];
     fat.fatId = ptr[0];
     if (ptr[1] != 0xFF) return;
@@ -214,7 +233,7 @@ static void extractBootSectorFromDisk()
     memset(&boot, 0, sizeof(boot));
     memcpy(&boot.bootJump, &diskImage[0][0x00], 3);
     memcpy(&boot.oemName, &diskImage[0][0x03], 8);
-    memcpy(&boot.secotrSize, &diskImage[0][0xB], 2);
+    memcpy(&boot.sectorSize, &diskImage[0][0xB], 2);
     memcpy(&boot.clusterSize, &diskImage[0][0xD], 1);
     memcpy(&boot.fatPosition, &diskImage[0][0xE], 2);
     memcpy(&boot.fatCopy, &diskImage[0][0x10], 1);
@@ -225,6 +244,38 @@ static void extractBootSectorFromDisk()
     memcpy(&boot.sectorPerTrack, &diskImage[0][0x18], 2);
     memcpy(&boot.diskSides, &diskImage[0][0x1A], 2);
     memcpy(&boot.hiddenSector, &diskImage[0][0x1C], 2);
+    boot.directoryPosition = boot.fatPosition + boot.fatSize * boot.fatCopy;
+    boot.dataPosition = boot.directoryPosition + 5;
+}
+
+static void extractBootSectorToDisk()
+{
+    unsigned char prg[] = {
+        0xD0, 0xED, 0x53, 0x59, 0xC0, 0x32, 0xD0, 0xC0, 0x36, 0x56, 0x23, 0x36, 0xC0, 0x31, 0x1F, 0xF5,
+        0x11, 0xAB, 0xC0, 0x0E, 0x0F, 0xCD, 0x7D, 0xF3, 0x3C, 0xCA, 0x63, 0xC0, 0x11, 0x00, 0x01, 0x0E,
+        0x1A, 0xCD, 0x7D, 0xF3, 0x21, 0x01, 0x00, 0x22, 0xB9, 0xC0, 0x21, 0x00, 0x3F, 0x11, 0xAB, 0xC0,
+        0x0E, 0x27, 0xCD, 0x7D, 0xF3, 0xC3, 0x00, 0x01, 0x58, 0xC0, 0xCD, 0x00, 0x00, 0x79, 0xE6, 0xFE, 
+        0xFE, 0x02, 0xC2, 0x6A, 0xC0, 0x3A, 0xD0, 0xC0, 0xA7, 0xCA, 0x22, 0x40, 0x11, 0x85, 0xC0, 0xCD, 
+        0x77, 0xC0, 0x0E, 0x07, 0xCD, 0x7D, 0xF3, 0x18, 0xB4, 0x1A, 0xB7, 0xC8, 0xD5, 0x5F, 0x0E, 0x06, 
+        0xCD, 0x7D, 0xF3, 0xD1, 0x13, 0x18, 0xF2, 0x42, 0x6F, 0x6F, 0x74, 0x20, 0x65, 0x72, 0x72, 0x6F, 
+        0x72, 0x0D, 0x0A, 0x50, 0x72, 0x65, 0x73, 0x73, 0x20, 0x61, 0x6E, 0x79, 0x20, 0x6B, 0x65, 0x79, 
+        0x20, 0x66, 0x6F, 0x72, 0x20, 0x72, 0x65, 0x74, 0x72, 0x79, 0x0D, 0x0A, 0x00, 0x00, 0x4D, 0x53, 
+        0x58, 0x44, 0x4F, 0x53, 0x20, 0x20, 0x53, 0x59, 0x53, 0x00
+    };
+    memcpy(&diskImage[0][0x00], &boot.bootJump, 3);
+    memcpy(&diskImage[0][0x03], &boot.oemName, 8);
+    memcpy(&diskImage[0][0xB], &boot.sectorSize, 2);
+    memcpy(&diskImage[0][0xD], &boot.clusterSize, 1);
+    memcpy(&diskImage[0][0xE], &boot.fatPosition, 2);
+    memcpy(&diskImage[0][0x10], &boot.fatCopy, 1);
+    memcpy(&diskImage[0][0x11], &boot.directoryEntry, 2);
+    memcpy(&diskImage[0][0x13], &boot.numberOfSector, 2);
+    memcpy(&diskImage[0][0x15], &boot.mediaId, 1);
+    memcpy(&diskImage[0][0x16], &boot.fatSize, 2);
+    memcpy(&diskImage[0][0x18], &boot.sectorPerTrack, 2);
+    memcpy(&diskImage[0][0x1A], &boot.diskSides, 2);
+    memcpy(&diskImage[0][0x1C], &boot.hiddenSector, 2);
+    memcpy(&diskImage[0][0x1E], prg, sizeof(prg));
     boot.directoryPosition = boot.fatPosition + boot.fatSize * boot.fatCopy;
     boot.dataPosition = boot.directoryPosition + 5;
 }
@@ -259,11 +310,11 @@ static int info(const char* dsk)
     puts("[Boot Sector]");
     printf("            OEM: %s\n", boot.oemName);
     printf("       Media ID: 0x%02X\n", boot.mediaId);
-    printf("    Sector Size: %d bytes\n", boot.secotrSize);
+    printf("    Sector Size: %d bytes\n", boot.sectorSize);
     printf("  Total Sectors: %d\n", boot.numberOfSector);
-    printf("   Cluster Size: %d bytes (%d sectors)\n", boot.clusterSize * boot.secotrSize, boot.clusterSize);
+    printf("   Cluster Size: %d bytes (%d sectors)\n", boot.clusterSize * boot.sectorSize, boot.clusterSize);
     printf("   FAT Position: %d\n", boot.fatPosition);
-    printf("       FAT Size: %d bytes (%d sectors)\n", boot.fatSize * boot.secotrSize, boot.fatSize);
+    printf("       FAT Size: %d bytes (%d sectors)\n", boot.fatSize * boot.sectorSize, boot.fatSize);
     printf("       FAT Copy: %d\n", boot.fatCopy);
     printf("Creatable Files: %d\n", boot.directoryEntry);
     printf("        Sectors: %d per track\n", boot.sectorPerTrack);
@@ -274,7 +325,7 @@ static int info(const char* dsk)
     int availableEntries = 0;
     for (int i = 0; i < fat.entryCount; i++) {
         if (0 < fat.entries[i].clusterCount) {
-            printf("- Entry#%d = %d bytes (%d cluster) ... %d: ", i, boot.clusterSize * boot.secotrSize * fat.entries[i].clusterCount, fat.entries[i].clusterCount, fat.entries[i].cluster[0]);
+            printf("- Entry#%d = %d bytes (%d cluster) ... %d: ", i, boot.clusterSize * boot.sectorSize * fat.entries[i].clusterCount, fat.entries[i].clusterCount, fat.entries[i].cluster[0]);
             bool found = false;
             for (int j = 0; j < dir.entryCount; j++) {
                 for (int jj = 0; jj < fat.entries[i].clusterCount; jj++) {
@@ -335,7 +386,7 @@ static void wr(FILE* fp, int di)
                     for (int j = ii; j < fat.entries[i].clusterCount; j++) {
                         for (int k = 0; k < boot.clusterSize; k++) {
                             int s = bp + (fat.entries[i].cluster[j] - 1) * boot.clusterSize + k;
-                            int n = size < boot.secotrSize ? size : boot.secotrSize;
+                            int n = size < boot.sectorSize ? size : boot.sectorSize;
                             fwrite(diskImage[s], 1, n, fp);
                             size -= n;
                             if (size < 1) {
@@ -352,7 +403,7 @@ static void wr(FILE* fp, int di)
     // ※MSXのディスクのFATは概ね壊れているのでこのケースに読み出しが行われる
     bp += (dir.entries[di].cluster - 1) * boot.clusterSize;
     while (0 < size && bp < boot.numberOfSector) {
-        int n = size < boot.secotrSize ? size : boot.secotrSize;
+        int n = size < boot.sectorSize ? size : boot.sectorSize;
         fwrite(diskImage[bp++], 1, n, fp);
         size -= n;
     }
@@ -408,6 +459,187 @@ static int cp(const char* dsk, char* displayName)
     return 4;
 }
 
+static bool addCreateFileInfo(const char* path)
+{
+    if (MAX_FILES <= cfi.entryCount) {
+        puts("Disk Full");
+        return false;
+    }
+    int idx = cfi.entryCount;
+    FILE* fp = fopen(path, "rb");
+    if (!fp) {
+        printf("File not found: %s\n", path);
+        return false;
+    }
+    fseek(fp, 0, SEEK_END);
+    cfi.entries[idx].size = (int)ftell(fp);
+    if (cfi.entries[idx].size < 1) {
+        puts("I/O error");
+        fclose(fp);
+        return false;
+    }
+    cfi.entries[idx].sectorSize = cfi.entries[idx].size / 512;
+    cfi.entries[idx].sectorSize += cfi.entries[idx].size % 512 != 0 ? 1 : 0;
+    cfi.entries[idx].clusterSize = cfi.entries[idx].sectorSize / 2;
+    cfi.entries[idx].clusterSize += cfi.entries[idx].sectorSize % 2;
+    cfi.totalSize += cfi.entries[idx].size;
+    cfi.totalSector += cfi.entries[idx].sectorSize;
+    cfi.totalCluster += cfi.entries[idx].clusterSize;
+    if ((1440 - 1 - 3 * 2 - 5) / 2 <= cfi.totalCluster) {
+        puts("Disk Full");
+        fclose(fp);
+        return false;
+    }
+    fseek(fp, 0, SEEK_SET);
+    cfi.entries[idx].data = malloc(cfi.entries[idx].size);
+    if (!cfi.entries[idx].data) {
+        puts("No memory");
+        fclose(fp);
+        return false;
+    }
+    if (cfi.entries[idx].size != fread(cfi.entries[idx].data, 1, cfi.entries[idx].size, fp)) {
+        puts("I/O error");
+        fclose(fp);
+        free(cfi.entries[idx].data);
+        cfi.entries[idx].data = NULL;
+        return false;
+    }
+    fclose(fp);
+    cfi.entries[idx].originalPath = path;
+    const char* name = strrchr(path, '/');
+    name = name ? name + 1 : path;
+    const char* ext = strchr(name, '.');
+    int nameLen = ext ? (int)(ext - name) : (int)strlen(name);
+    int extLen = ext ? strlen(ext + 1) : 0;
+    ext = ext ? ext + 1 : 0;
+    memset(cfi.entries[idx].name, 0x20, 8);
+    memcpy(cfi.entries[idx].name, name, nameLen < 8 ? nameLen : 8);
+    for (int i = 0; i < 8; i++) {
+        cfi.entries[idx].name[i] = toupper(cfi.entries[idx].name[i]);
+    }
+    memset(cfi.entries[cfi.entryCount].ext, 0x20, 3);
+    if (ext) {
+        memcpy(cfi.entries[cfi.entryCount].ext, ext, extLen < 3 ? extLen : 3);
+    }
+    for (int i = 0; i < 3; i++) cfi.entries[idx].ext[i] = toupper(cfi.entries[idx].ext[i]);
+    cfi.entryCount++;
+    return true;
+}
+
+static void releaseCFI()
+{
+    for (int i = 0; i < MAX_FILES; i++) {
+        if (cfi.entries[i].data) {
+            free(cfi.entries[i].data);
+        }
+    }
+}
+
+static int create(const char* dskPath)
+{
+    // Create Boot Sector
+    unsigned char bootJump[3] = { 0xEB, 0xFE, 0x90 };
+    boot.bootJump[0] = 0xEB;
+    boot.bootJump[1] = 0xFE;
+    boot.bootJump[2] = 0x90;
+    memcpy(boot.oemName, "SZKPLN01", 8);
+    boot.sectorSize = 512;
+    boot.clusterSize = 2;
+    boot.fatPosition = 1;
+    boot.fatCopy = 2;
+    boot.directoryEntry = MAX_FILES;
+    boot.numberOfSector = 1440;
+    boot.mediaId = 0xF9;
+    boot.fatSize = 3;
+    boot.sectorPerTrack = 9;
+    boot.diskSides = 2;
+    boot.hiddenSector = 0;
+    extractBootSectorToDisk();
+
+    // Create FAT
+    unsigned char* f = &diskImage[boot.fatPosition][0];
+    *f = 0xF9;
+    f++;
+    *f = 0xFF;
+    f++;
+    *f = 0xFF;
+    f++;
+    int c = 2;
+    int fs = 0;
+    for (int i = 0; i < cfi.entryCount; i++) {
+        cfi.entries[i].clusterStart = (unsigned short)c;
+        for (int ii = 0; ii < cfi.entries[i].clusterSize; ii++) {
+            if (0 == fs) {
+                *f = (unsigned char)(c & 0xFF);
+                f++;
+                *f = ((unsigned char)(c & 0xF00)) >> 8;
+            } else {
+                (*f) |= ((unsigned char)(c & 0x00F)) << 4;
+                f++;
+                *f = (unsigned char)((c & 0xFF0) >> 4);
+                f++;
+            }
+            c++;
+            fs = 1 - fs;
+        }
+        // write FFF
+        if (0 == fs) {
+            *f = 0xFF;
+            f++;
+            *f = 0x0F;
+        } else {
+            *f |= 0xF0;
+            f++;
+            *f = 0xFF;
+            f++;
+        }
+        fs = 1 - fs;
+    }
+
+    // Copy FAT
+    for (int i = 1; i < boot.fatCopy; i++) {
+        memcpy(diskImage[boot.fatPosition + boot.fatSize * i], diskImage[boot.fatPosition], boot.fatSize * boot.sectorSize);
+    }
+
+    // Create Directory & File Content
+    unsigned char* d = &diskImage[boot.directoryPosition][0];
+    for (int i = 0; i < cfi.entryCount; i++) {
+        // Directory
+        memcpy(d, cfi.entries[i].name, 8);
+        d += 8;
+        memcpy(d, cfi.entries[i].ext, 3);
+        d += 3;
+        *d = 0;
+        d += 11;
+        d += 2; // hour/min/sec
+        d += 2; // year/month/day
+        memcpy(d, &cfi.entries[i].clusterStart, 2);
+        d += 2;
+        memcpy(d, &cfi.entries[i].size, 4);
+        d += 4;
+        // File Content
+        memcpy(diskImage[boot.dataPosition + (cfi.entries[i].clusterStart - 1) * boot.clusterSize], cfi.entries[i].data, cfi.entries[i].size);
+    }
+
+    // Write Disk Image
+    FILE* fp = fopen(dskPath, "wb");
+    if (NULL == fp) {
+        puts("I/O error");
+        releaseCFI();
+        return 6;
+    }
+    if (sizeof(diskImage) != fwrite(diskImage, 1, sizeof(diskImage), fp)) {
+        puts("I/O error");
+        releaseCFI();
+        fclose(fp);
+        return 6;
+    }
+    fclose(fp);
+    releaseCFI();
+    return 0;
+}
+
+
 int main(int argc, char* argv[])
 {
     if (!isLittleEndian()) {
@@ -436,6 +668,18 @@ int main(int argc, char* argv[])
             return 1;
         }
         return cp(argv[1], argv[3]);
+    } else if (0 == strcmp(argv[2], "create")) {
+        if (argc < 4) {
+            showUsage(BIT_CREATE);
+            return 1;
+        }
+        memset(&cfi, 0, sizeof(cfi));
+        for (int i = 3; i < argc; i++) {
+            if (!addCreateFileInfo(argv[i])) {
+                return 5;
+            }
+        }
+        return create(argv[1]);
     } else {
         showUsage(0xFF);
         return 1;
