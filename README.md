@@ -20,6 +20,39 @@
 make
 ```
 
+## How to Test
+
+```bash
+% make test
+clang++ -o dskmgr src/dskmgr.cpp
+========================================
+cd test && ../dskmgr ./wmsx.dsk info
+[Boot Sector]
+            OEM: WMSX    
+       Media ID: 0xF9
+    Sector Size: 512 bytes
+  Total Sectors: 1440
+   Cluster Size: 1024 bytes (2 sectors)
+   FAT Position: 1
+       FAT Size: 1536 bytes (3 sectors)
+       FAT Copy: 2
+Creatable Files: 112
+        Sectors: 9 per track
+     Disk Sides: 2
+ Hidden Sectors: 0
+
+[FAT]
+Fat ID: 0xF9
+Available Entries: 0/3
+========================================
+cd test && ../dskmgr ./wmsx.dsk ls
+----w  HELLO.BAS           23 bytes  2023.03.17 09:37:56  (C:2, S:12)
+----w  HOGE.BAS            30 bytes  2023.03.17 09:38:54  (C:3, S:14)
+========================================
+cd test && ../dskmgr ./wmsx.dsk cp hello.bas
+cd test && ../dskmgr ./wmsx.dsk cp hoge.bas
+```
+
 ## How to Use
 
 ### Create New Disk Image
