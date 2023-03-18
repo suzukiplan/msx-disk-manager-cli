@@ -28,10 +28,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "basic.hpp"
 
 #define MAX_FILES 112
 
-int bas2txt(FILE* stream, unsigned char* cBuf); // bas2txt.cpp
+static BasicFilter bf;
 static unsigned char diskImage[1440][512];
 
 // NOTE: Boundary-unaware data structure to be expanded at read time
@@ -503,7 +504,7 @@ static int cat(const char* dsk, char* displayName)
                 if (0 == strncmp(ext, "BAS", 3)) {
                     unsigned char* buf = (unsigned char*)malloc(dir.entries[i].size);
                     wm(buf, i);
-                    bas2txt(stdout, buf);
+                    bf.bas2txt(stdout, buf);
                     free(buf);
                 } else {
                     wr(stdout, i);
