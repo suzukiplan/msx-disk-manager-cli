@@ -24,11 +24,11 @@
  * THE SOFTWARE.
  * -----------------------------------------------------------------------------
  */
+#include "basic.hpp"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "basic.hpp"
 
 #define MAX_FILES 112
 
