@@ -332,6 +332,7 @@ class BasicFilter
             memcpy(&result[optr], &offset, 2);
         }
         result[ptr++] = 0;
+        result[ptr++] = 0;
         *basSize = ptr;
         free(text);
         return result;
