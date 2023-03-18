@@ -536,6 +536,40 @@ static bool addCreateFileInfo(const char* path)
         fclose(fp);
         return false;
     }
+    fseek(fp, 0, SEEK_SET);
+    unsigned char* bin = (unsigned char*)malloc(cfi.entries[idx].size + 1);
+    if (!bin) {
+        puts("No memory");
+        fclose(fp);
+        return false;
+    }
+    bin[cfi.entries[idx].size] = 0;
+    if (cfi.entries[idx].size != fread(bin, 1, cfi.entries[idx].size, fp)) {
+        puts("I/O error");
+        fclose(fp);
+        return false;
+    }
+    fclose(fp);
+    size_t basSize = 0;
+    unsigned char* bas = nullptr;
+    const char* name = strrchr(path, '/');
+    name = name ? name + 1 : path;
+    const char* ext = strchr(name, '.');
+    int nameLen = ext ? (int)(ext - name) : (int)strlen(name);
+    int extLen = ext ? strlen(ext + 1) : 0;
+    ext = ext ? ext + 1 : 0;
+    if (3 == extLen && 0 == strncasecmp(ext, "BAS", 3)) {
+        bas = bf.txt2bas((char*)bin, &basSize);
+    }
+    if (bas) {
+        printf("%s: Convert to MSX-BASIC intermediate code ... %d -> %lu bytes\n", path, cfi.entries[idx].size, basSize);
+        cfi.entries[idx].size = (int)basSize;
+        free(bin);
+        bin = bas;
+        bf.bas2txt(stdout, bas);
+    } else {
+        printf("%s: Write to disk as a binary file ... %d bytes\n", path, cfi.entries[idx].size);
+    }
     cfi.entries[idx].sectorSize = cfi.entries[idx].size / 512;
     cfi.entries[idx].sectorSize += cfi.entries[idx].size % 512 != 0 ? 1 : 0;
     cfi.entries[idx].clusterSize = cfi.entries[idx].sectorSize / 2;
@@ -545,31 +579,10 @@ static bool addCreateFileInfo(const char* path)
     cfi.totalCluster += cfi.entries[idx].clusterSize;
     if ((1440 - 1 - 3 * 2 - 5) / 2 <= cfi.totalCluster) {
         puts("Disk Full");
-        fclose(fp);
         return false;
     }
-    fseek(fp, 0, SEEK_SET);
-    cfi.entries[idx].data = malloc(cfi.entries[idx].size);
-    if (!cfi.entries[idx].data) {
-        puts("No memory");
-        fclose(fp);
-        return false;
-    }
-    if (cfi.entries[idx].size != fread(cfi.entries[idx].data, 1, cfi.entries[idx].size, fp)) {
-        puts("I/O error");
-        fclose(fp);
-        free(cfi.entries[idx].data);
-        cfi.entries[idx].data = NULL;
-        return false;
-    }
-    fclose(fp);
+    cfi.entries[idx].data = bas ? bas : bin;
     cfi.entries[idx].originalPath = path;
-    const char* name = strrchr(path, '/');
-    name = name ? name + 1 : path;
-    const char* ext = strchr(name, '.');
-    int nameLen = ext ? (int)(ext - name) : (int)strlen(name);
-    int extLen = ext ? strlen(ext + 1) : 0;
-    ext = ext ? ext + 1 : 0;
     memset(cfi.entries[idx].name, 0x20, 8);
     memcpy(cfi.entries[idx].name, name, nameLen < 8 ? nameLen : 8);
     for (int i = 0; i < 8; i++) {
