@@ -462,7 +462,6 @@ class BasicFilter
                 mantissa[0] = '0';
             }
         }
-        printf("fstr=%s, mantissa=%s\n",fstr,mantissa);
         // mantissaが0ならオール0を返す
         if (0L == atol(mantissa)) {
             for (int i=0;i<(isDouble ? 8 : 4);i++) {
