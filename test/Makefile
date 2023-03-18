@@ -8,3 +8,4 @@ all:
 	../dskmgr ./image.dsk cp hoge.bas
 	../dskmgr ./image.dsk cat hello.bas
 	../dskmgr ./image.dsk cat hoge.bas
+	../dskmgr ./image.dsk cat text.bas >text.bas

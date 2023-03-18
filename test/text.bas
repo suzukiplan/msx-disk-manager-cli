@@ -37,8 +37,8 @@
 580 POKE &H9002,VB:PSET(0,50),0:IF VB=0 THEN PRINT #1,"Outside V-blank" ELSE PRINT #1,"Inside V-blank"
 590 POKE &H9003,CM:PSET(0,60),0:IF CM=0 THEN PRINT #1,"No VDP command" ELSE PRINT #1,"Run VDP command while writing"
 600 POKE &H9004,DL:PSET(0,70),0:PRINT #1,"T-States delay:"+STR$(DL)
-610 X=0:A$="sprite":GOSUB640
-620 X=126:A$="cross":GOSUB640
+610 X=0:A$="sprite":GOSUB 640
+620 X=126:A$="cross":GOSUB 640
 630 A=USR(0):RETURN
 640 PSET(X,150),0:PRINT #1,"^  See":PSET(X,160),0:PRINT #1,"|  "+A$:PSET(X,170),0:PRINT #1,"|  here?":RETURN
 800 REM Sprite pattern = Square.
@@ -47,7 +47,7 @@
 900 REM Sprite pattern = Cross
 910 DATA 128,64,32,16,8,4,2,1,1,2,4,8,16,32,64,128
 920 DATA 1,2,4,8,16,32,64,128,128,64,32,16,8,4,2,1
-1000 Rem Assembly code
+1000 REM Assembly code
 1010 DATA 313
 1020 DATA 0,0,0,0,17,1,0,243
 1030 DATA 33,159,253,17,26,145,1,5
