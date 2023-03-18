@@ -566,7 +566,6 @@ static bool addCreateFileInfo(const char* path)
         cfi.entries[idx].size = (int)basSize;
         free(bin);
         bin = bas;
-        bf.bas2txt(stdout, bas);
     } else {
         printf("%s: Write to disk as a binary file ... %d bytes\n", path, cfi.entries[idx].size);
     }
