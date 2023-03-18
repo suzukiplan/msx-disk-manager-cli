@@ -1,3 +1,4 @@
+// [DEPRECATED] using basic.hpp
 // Original: http://ryusendo.rdy.jp/?page_id=268
 // Modified by Y.Suzuki
 #include <iostream>

@@ -58,8 +58,49 @@
         "typeinfo": "cpp",
         "unordered_map": "cpp",
         "utility": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "__bits": "cpp",
+        "__tree": "cpp",
+        "bit": "cpp",
+        "clocale": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "condition_variable": "cpp",
+        "deque": "cpp",
+        "iostream": "cpp",
+        "list": "cpp",
+        "map": "cpp",
+        "numbers": "cpp",
+        "numeric": "cpp",
+        "queue": "cpp",
+        "random": "cpp",
+        "semaphore": "cpp",
+        "set": "cpp",
+        "unordered_set": "cpp",
+        "variant": "cpp",
+        "hash_map": "cpp",
+        "*.tcc": "cpp",
+        "memory_resource": "cpp",
+        "stop_token": "cpp",
+        "thread": "cpp",
+        "cinttypes": "cpp"
     },
     "C_Cpp.default.cppStandard": "c++14",
-    "editor.formatOnSave": true
+    "editor.formatOnSave": false,
+    "clang-format.language.cpp.enable": false,
+    "C_Cpp.debugShortcut": false,
+    "C_Cpp.autoAddFileAssociations": false,
+    "files.useExperimentalFileWatcher": true,
+    "files.exclude": {
+        "/.git": true,
+        "/.DS_Store": true
+    },
+    "search.exclude": {
+        "/.git": true,
+        "/.DS_Store": true
+    },
+    "files.watcherExclude": {
+        "/.git": true,
+        "/.DS_Store": true
+    }
 }
