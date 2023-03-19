@@ -471,19 +471,28 @@ class BasicFilter
             }
             return;
         }
+        // 小数点の位置から指数部 (index) を算出
+        dot = strchr(fstr, '.');
+        if (!dot) {
+            // 整数
+            buf[0] = 0x40 | (isDouble ? 14 : 6);
+        } else if (0 == atoi(fstr)) {
+            // 1未満の実数
+            buf[0] = 0x40;
+            while ('0' == mantissa[0] && 0 != buf[0]) {
+                memmove(&mantissa[0], &mantissa[1], strlen(&mantissa[1]) + 1);
+                buf[0]--;
+            }
+        } else {
+            // 1以上の実数
+            int index = (int)((dot ? dot : fstr) - fstr);
+            buf[0] = 0x40 | index;
+            buf[0] &= 0x7F;
+        }
         // mantissaをBCD形式でメモリに設定
         for (int i = 0; i < (isDouble ? 7 : 3); i++) {
             buf[1 + i] = (mantissa[i * 2] - '0') << 4;
             buf[1 + i] |= mantissa[i * 2 + 1] - '0';
-        }
-        // 小数点の位置から指数部 (index) を算出
-        dot = strchr(fstr, '.');
-        if (!dot) {
-            buf[0] = 0x40 | (isDouble ? 14 : 6);
-        } else {
-            int index = (int)((dot ? dot : fstr) - fstr);
-            buf[0] = 0x40 | index;
-            buf[0] &= 0x7F;
         }
     }
 

@@ -44,7 +44,7 @@ cd test && make
 ../dskmgr ./image.dsk create hello.bas hoge.bas text.bas
 hello.bas: Write to disk as a binary file ... 23 bytes
 hoge.bas: Write to disk as a binary file ... 30 bytes
-text.bas: Convert to MSX-BASIC intermediate code ... 245 -> 200 bytes
+text.bas: Convert to MSX-BASIC intermediate code ... 385 -> 304 bytes
 ../dskmgr ./image.dsk info
 [Boot Sector]
             OEM: SZKPLN01
@@ -69,7 +69,7 @@ Available Entries: 3/4
 ../dskmgr ./image.dsk ls
 00:----w  HELLO.BAS           23 bytes  1980.00.00 00:00:00  (C:2, S:12)
 00:----w  HOGE.BAS            30 bytes  1980.00.00 00:00:00  (C:3, S:14)
-00:----w  TEXT.BAS           200 bytes  1980.00.00 00:00:00  (C:4, S:16)
+00:----w  TEXT.BAS           304 bytes  1980.00.00 00:00:00  (C:4, S:16)
 ../dskmgr ./image.dsk cp hello.bas
 ../dskmgr ./image.dsk cp hoge.bas
 ../dskmgr ./image.dsk cat hello.bas
