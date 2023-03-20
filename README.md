@@ -87,8 +87,8 @@ Available Entries: 3/4
 |[create](#create)|新規ディスクイメージファイルを生成|
 |[info](#info)|ディスクのブートセクタと FAT (FAT12) の内容をダンプ|
 |[ls](#ls)|ディスクに格納されているファイルの一覧を表示|
-|[get](#get)|ディスクに格納されているファイルをローカルへコピー|
-|[put](#put)|ローカルをディスクへコピー|
+|[get](#get)|ディスクに格納されているファイルをローカルへ取得|
+|[put](#put)|ローカルをディスクへ書き込む|
 |[cat](#cat)|ディスクに格納されているファイルをローカルで標準出力|
 
 ### create
@@ -122,10 +122,11 @@ Available Entries: 3/4
 ### get
 
 ```bash
-./dskmgr image.dsk get filename
+./dskmgr image.dsk get filename [as filename2]
 ```
 
-- `filename` で指定した `image.dsk` 内のファイルをローカルへコピーします
+- `filename` で指定した `image.dsk` 内のファイルをローカルへ取得します
+- `[as filename2]` を指定した場合はローカルでは `filename2` で保存されます
 - `filename` は大文字と小文字を区別しません（全て大文字と解釈されます）
 
 > BASIC (.BASファイル) の場合は `cat` コマンドを使えば中間言語からテキスト形式に変換することができます。
@@ -133,13 +134,14 @@ Available Entries: 3/4
 ### put
 
 ```bash
-./dskmgr image.dsk put filename
+./dskmgr image.dsk put filename [as filename2]
 ```
 
 - `filename` で指定したローカルファイルを `image.dsk` 内へコピーします
-- `filename` は大文字と小文字を区別しません（全て大文字と解釈されます）
-- `image.dsk` 内に `filename` と同じファイル名が存在する場合は上書きされます
-- `image.dsk` 内に `filename` と同じファイル名が存在しない場合は新規追加されます
+- `[as filename2]` を指定した場合は `image.dsk` には `filename2` で保存されます
+- `filename` または `filename2` は大文字と小文字を区別しません（全て大文字と解釈されます）
+- `image.dsk` 内に `filename` または `filename2` と同じファイル名が存在する場合は上書きされます
+- `image.dsk` 内に `filename` または `filename2` と同じファイル名が存在しない場合は新規追加されます
 - テキスト形式のBASIC（.BAS）ファイルは中間言語形式に自動変換されます
 - ファイルサイズやファイル数の上限を超える場合は `Disk Full` エラーで書き込みが失敗します
 

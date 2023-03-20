@@ -127,8 +127,8 @@ static void showUsage(int bit)
     if (bit & BIT_CREATE) puts("- create .......... dskmgr image.dsk create [files]");
     if (bit & BIT_INFO) puts("- information ..... dskmgr image.dsk info");
     if (bit & BIT_LS) puts("- list files ...... dskmgr image.dsk ls");
-    if (bit & BIT_CP) puts("- copy to local ... dskmgr image.dsk get filename");
-    if (bit & BIT_WR) puts("- copy to disk .... dskmgr image.dsk put filename");
+    if (bit & BIT_CP) puts("- copy to local ... dskmgr image.dsk get filename [as filename2]");
+    if (bit & BIT_WR) puts("- copy to disk .... dskmgr image.dsk put filename [as filename2]");
     if (bit & BIT_CAT) puts("- stdout file  .... dskmgr image.dsk cat filename");
 }
 
@@ -468,7 +468,7 @@ static int parseDisplayName(char* displayName, char* name, char* ext)
     return 0;
 }
 
-static int get(const char* dsk, char* displayName)
+static int get(const char* dsk, char* displayName, const char* getAs)
 {
     char localFileName[16];
     char name[9];
@@ -481,7 +481,7 @@ static int get(const char* dsk, char* displayName)
         if (dir.entries[i].removed) continue;
         if (strcmp(dir.entries[i].name, name) == 0) {
             if (strcmp(dir.entries[i].ext, ext) == 0) {
-                FILE* fp = fopen(localFileName, "wb");
+                FILE* fp = fopen(getAs ? getAs : localFileName, "wb");
                 wr(fp, i);
                 fclose(fp);
                 return 0;
@@ -545,7 +545,7 @@ static bool setCreateFileInfo(int idx, const char* name, int nameLen, const char
     return true;
 }
 
-static bool addCreateFileInfo(const char* path)
+static bool addCreateFileInfo(const char* path, const char* putAs = nullptr)
 {
     if (MAX_FILES <= cfi.entryCount) {
         puts("Disk Full");
@@ -591,12 +591,22 @@ static bool addCreateFileInfo(const char* path)
         bas = bf.txt2bas((char*)bin, &basSize);
     }
     if (bas) {
-        printf("%s: Convert to MSX-BASIC intermediate code ... %d -> %lu bytes\n", path, cfi.entries[idx].size, basSize);
+        printf("%s: Convert to MSX-BASIC intermediate code ... %d -> %lu bytes", path, cfi.entries[idx].size, basSize);
         cfi.entries[idx].size = (int)basSize;
         free(bin);
         bin = bas;
     } else {
-        printf("%s: Write to disk as a binary file ... %d bytes\n", path, cfi.entries[idx].size);
+        printf("%s: Write to disk as a binary file ... %d bytes", path, cfi.entries[idx].size);
+    }
+    if (putAs) {
+        printf(" as %s\n", putAs);
+        name = putAs;
+        ext = strchr(name, '.');
+        nameLen = ext ? (int)(ext - name) : (int)strlen(name);
+        extLen = ext ? strlen(ext + 1) : 0;
+        ext = ext ? ext + 1 : 0;
+    } else {
+        printf("\n");
     }
     if (!setCreateFileInfo(idx, name, nameLen, ext, extLen, bas ? bas : bin, cfi.entries[idx].size)) {
         return false;
@@ -706,15 +716,19 @@ static int create(const char* dskPath)
     return 0;
 }
 
-static int put(const char* dsk, char* path)
+static int put(const char* dsk, char* path, const char* putAs)
 {
     char displayName[4096];
     char name[9];
     char ext[4];
-    char* cp = strrchr(path, '/');
-    if (!cp) cp = strrchr(path, '\\');
-    cp = cp ? cp + 1 : path;
-    strcpy(displayName, cp);
+    if (putAs) {
+        strcpy(displayName, putAs);
+    } else {
+        char* cp = strrchr(path, '/');
+        if (!cp) cp = strrchr(path, '\\');
+        cp = cp ? cp + 1 : path;
+        strcpy(displayName, cp);
+    }
     int parseError = parseDisplayName(displayName, name, ext);
     if (parseError) return parseError;
     if (!readDisk(dsk)) return 2;
@@ -725,7 +739,7 @@ static int put(const char* dsk, char* path)
         if (strcasecmp(dir.entries[i].name, name) == 0 && strcasecmp(dir.entries[i].ext, ext) == 0) {
             // 既存ファイルを更新
             isOverwrite = true;
-            if (!addCreateFileInfo(path)) {
+            if (!addCreateFileInfo(path, putAs)) {
                 return -1;
             }
         } else {
@@ -742,7 +756,7 @@ static int put(const char* dsk, char* path)
         }
     }
     if (!isOverwrite) {
-        if (!addCreateFileInfo(path)) {
+        if (!addCreateFileInfo(path, putAs)) {
             return -1;
         }
     }
@@ -760,38 +774,46 @@ int main(int argc, char* argv[])
         showUsage(0xFF);
         return 1;
     }
-    if (0 == strcmp(argv[2], "info")) {
+    if (0 == strcasecmp(argv[2], "info")) {
         if (argc != 3) {
             showUsage(BIT_INFO);
             return 1;
         }
         return info(argv[1]);
-    } else if (0 == strcmp(argv[2], "ls") || 0 == strcmp(argv[2], "dir")) {
+    } else if (0 == strcasecmp(argv[2], "ls") || 0 == strcasecmp(argv[2], "dir")) {
         if (argc != 3) {
             showUsage(BIT_LS);
             return 1;
         }
         return ls(argv[1]);
-    } else if (0 == strcmp(argv[2], "cp") || 0 == strcmp(argv[2], "get")) {
-        if (argc != 4) {
+    } else if (0 == strcasecmp(argv[2], "cp") || 0 == strcmp(argv[2], "get")) {
+        if (argc != 4 && argc != 6) {
             showUsage(BIT_CP);
             return 1;
         }
-        return get(argv[1], argv[3]);
-    } else if (0 == strcmp(argv[2], "wt") || 0 == strcmp(argv[2], "put")) {
-        if (argc != 4) {
+        if (argc == 6 && 0 != strcasecmp(argv[4], "as")) {
+            showUsage(BIT_CP);
+            return 1;
+        }
+        return get(argv[1], argv[3], 6 == argc ? argv[5] : nullptr);
+    } else if (0 == strcasecmp(argv[2], "wt") || 0 == strcasecmp(argv[2], "put")) {
+        if (argc != 4 && argc != 6) {
             showUsage(BIT_WR);
             return 1;
         }
+        if (argc == 6 && 0 != strcasecmp(argv[4], "as")) {
+            showUsage(BIT_CP);
+            return 1;
+        }
         memset(&cfi, 0, sizeof(cfi));
-        return put(argv[1], argv[3]);
-    } else if (0 == strcmp(argv[2], "cat")) {
+        return put(argv[1], argv[3], 6 == argc ? argv[5] : nullptr);
+    } else if (0 == strcasecmp(argv[2], "cat")) {
         if (argc != 4) {
             showUsage(BIT_CAT);
             return 1;
         }
         return cat(argv[1], argv[3]);
-    } else if (0 == strcmp(argv[2], "create")) {
+    } else if (0 == strcasecmp(argv[2], "create")) {
         if (argc < 3) {
             showUsage(BIT_CREATE);
             return 1;
