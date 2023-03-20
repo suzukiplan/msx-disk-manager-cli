@@ -120,6 +120,7 @@ static bool isLittleEndian()
 #define BIT_CP 0b00001000
 #define BIT_WR 0b00010000
 #define BIT_CAT 0b00100000
+#define BIT_RM 0b01000000
 
 static void showUsage(int bit)
 {
@@ -130,6 +131,7 @@ static void showUsage(int bit)
     if (bit & BIT_CP) puts("- copy to local ... dskmgr image.dsk get filename [as filename2]");
     if (bit & BIT_WR) puts("- copy to disk .... dskmgr image.dsk put filename [as filename2]");
     if (bit & BIT_CAT) puts("- stdout file  .... dskmgr image.dsk cat filename");
+    if (bit & BIT_RM) puts("- remove file  .... dskmgr image.dsk rm filename");
 }
 
 static void extractDirectoryFromDisk()
@@ -764,6 +766,45 @@ static int put(const char* dsk, char* path, const char* putAs)
     return create(dsk);
 }
 
+static int rm(const char* dsk, char* path)
+{
+    char displayName[4096];
+    char name[9];
+    char ext[4];
+    char* cp = strrchr(path, '/');
+    if (!cp) cp = strrchr(path, '\\');
+    cp = cp ? cp + 1 : path;
+    strcpy(displayName, cp);
+    int parseError = parseDisplayName(displayName, name, ext);
+    if (parseError) return parseError;
+    if (!readDisk(dsk)) return 2;
+    bool removed = false;
+    cfi.entryCount = 0;
+    for (int i = 0; i < dir.entryCount; i++) {
+        if (dir.entries[i].removed) continue;
+        if (strcasecmp(dir.entries[i].name, name) == 0 && strcasecmp(dir.entries[i].ext, ext) == 0) {
+            removed = true;
+        } else {
+            // 既存ファイルをそのまま維持
+            unsigned char* data = (unsigned char*)malloc(dir.entries[i].size);
+            if (!data) {
+                puts("No memory");
+                return -1;
+            }
+            wm(data, i);
+            if (!setCreateFileInfo(cfi.entryCount++, dir.entries[i].name, 8, dir.entries[i].ext, 3, data, dir.entries[i].size)) {
+                return -1;
+            }
+        }
+    }
+    if (!removed) {
+        puts("File not found");
+        return -1;
+    }
+    memset(diskImage, 0, sizeof(diskImage));
+    return create(dsk);
+}
+
 int main(int argc, char* argv[])
 {
     if (!isLittleEndian()) {
@@ -813,6 +854,12 @@ int main(int argc, char* argv[])
             return 1;
         }
         return cat(argv[1], argv[3]);
+    } else if (0 == strcasecmp(argv[2], "rm") || 0 == strcasecmp(argv[2], "del") || 0 == strcasecmp(argv[2], "delete")) {
+        if (argc != 4) {
+            showUsage(BIT_RM);
+            return 1;
+        }
+        return rm(argv[1], argv[3]);
     } else if (0 == strcasecmp(argv[2], "create")) {
         if (argc < 3) {
             showUsage(BIT_CREATE);

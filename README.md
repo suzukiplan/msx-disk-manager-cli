@@ -90,6 +90,7 @@ Available Entries: 3/4
 |[get](#get)|ディスクに格納されているファイルをローカルへ取得|
 |[put](#put)|ローカルをディスクへ書き込む|
 |[cat](#cat)|ディスクに格納されているファイルをローカルで標準出力|
+|[rm](#rm)|ディスクに格納されている特定のファイルを削除|
 
 ### create
 
@@ -154,3 +155,11 @@ Available Entries: 3/4
 - `filename` で指定した `image.dsk` 内のファイルをローカルへ標準出力します
 - `filename` は大文字と小文字を区別しません（全て大文字と解釈されます）
 - 拡張子が `.BAS` の場合、テキストに変換して標準出力します
+
+### rm
+
+```bash
+./dskmgr image.dsk rm filename
+```
+
+- `filename` で指定した `image.dsk` 内のファイルを削除します
