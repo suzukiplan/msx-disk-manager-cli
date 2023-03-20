@@ -760,7 +760,7 @@ static int put(const char* dsk, char* path, const char* putAs)
             return -1;
         }
     }
-    memset(diskImage,0,sizeof(diskImage));
+    memset(diskImage, 0, sizeof(diskImage));
     return create(dsk);
 }
 
