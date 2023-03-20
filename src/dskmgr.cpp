@@ -731,7 +731,7 @@ int main(int argc, char* argv[])
             return 1;
         }
         return ls(argv[1]);
-    } else if (0 == strcmp(argv[2], "cp")) {
+    } else if (0 == strcmp(argv[2], "cp") || 0 == strcmp(argv[2], "get")) {
         if (argc != 4) {
             showUsage(BIT_CP);
             return 1;

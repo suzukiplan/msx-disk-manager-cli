@@ -22,14 +22,14 @@ Windows, Linux, macOS などで使用できる fMSX 形式のディスクイメ�
 
 テストで行っていること:
 
-1. WebMSXで作成したディスクイメージから MSX-BASIC のコードを `cp` コマンドで読み込む
+1. WebMSXで作成したディスクイメージから MSX-BASIC のコードを `get` コマンドで読み込む
 2. `create` コマンドで新規ディスクイメージを生成:
   a. HELLO.BAS: 1 で読み込んだ MSX-BASIC のコード
   b. HOGE.BAS: 1 で読み込んだ MSX-BASIC のコード
   c. TEXT.BAS: テキスト形式の MSX-BASIC のコード (中間コードに自動変換される)
 3. 生成したディスクイメージの情報を `info` コマンドで確認
 4. 生成したディスクイメージの情報を `ls` コマンドで確認
-5. 作成したディスクイメージからMSX-BASICのコードを `cp` コマンドで読み込む（バイナリ差分が出ない事を git 上で確認用）
+5. 作成したディスクイメージからMSX-BASICのコードを `get` コマンドで読み込む（バイナリ差分が出ない事を git 上で確認用）
 6. 作成したディスクイメージからMSX-BASICのコードを `cat` コマンドで出力:
   a. HELLO.BAS: 標準出力
   b. HOGE.BAS: 標準出力
@@ -39,8 +39,8 @@ Windows, Linux, macOS などで使用できる fMSX 形式のディスクイメ�
 % make
 clang++ --std=c++14 -o dskmgr src/dskmgr.cpp
 cd test && make
-../dskmgr ./wmsx.dsk cp hello.bas
-../dskmgr ./wmsx.dsk cp hoge.bas
+../dskmgr ./wmsx.dsk get hello.bas
+../dskmgr ./wmsx.dsk get hoge.bas
 ../dskmgr ./image.dsk create hello.bas hoge.bas text.bas
 hello.bas: Write to disk as a binary file ... 23 bytes
 hoge.bas: Write to disk as a binary file ... 30 bytes
@@ -70,8 +70,8 @@ Available Entries: 3/4
 00:----w  HELLO.BAS           23 bytes  1980.00.00 00:00:00  (C:2, S:12)
 00:----w  HOGE.BAS            30 bytes  1980.00.00 00:00:00  (C:3, S:14)
 00:----w  TEXT.BAS           304 bytes  1980.00.00 00:00:00  (C:4, S:16)
-../dskmgr ./image.dsk cp hello.bas
-../dskmgr ./image.dsk cp hoge.bas
+../dskmgr ./image.dsk get hello.bas
+../dskmgr ./image.dsk get hoge.bas
 ../dskmgr ./image.dsk cat hello.bas
 10 PRINT"HELLO,WORLD!"
 ../dskmgr ./image.dsk cat hoge.bas
@@ -87,7 +87,7 @@ Available Entries: 3/4
 |[create](#create)|新規ディスクイメージファイルを生成|
 |[info](#info)|ディスクのブートセクタと FAT (FAT12) の内容をダンプ|
 |[ls](#ls)|ディスクに格納されているファイルの一覧を表示|
-|[cp](#cp)|ディスクに格納されているファイルをローカルへコピー|
+|[get](#get)|ディスクに格納されているファイルをローカルへコピー|
 |[cat](#cat)|ディスクに格納されているファイルをローカルで標準出力|
 
 ### create
@@ -118,10 +118,10 @@ Available Entries: 3/4
 
 `image.dsk` に格納されているファイルの一覧を表示します
 
-### cp
+### get
 
 ```bash
-./dskmgr image.dsk cp filename
+./dskmgr image.dsk get filename
 ```
 
 - `filename` で指定した `image.dsk` 内のファイルをローカルへコピーします
