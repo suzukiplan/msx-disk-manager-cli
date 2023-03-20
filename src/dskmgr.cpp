@@ -95,7 +95,6 @@ static struct Directory {
 static struct CreateFileInfo {
     int entryCount;
     struct Entry {
-        const char* originalPath;
         char name[8];
         char ext[3];
         unsigned int size;
@@ -119,7 +118,8 @@ static bool isLittleEndian()
 #define BIT_INFO 0b00000010
 #define BIT_LS 0b00000100
 #define BIT_CP 0b00001000
-#define BIT_CAT 0b00010000
+#define BIT_WR 0b00010000
+#define BIT_CAT 0b00100000
 
 static void showUsage(int bit)
 {
@@ -127,7 +127,8 @@ static void showUsage(int bit)
     if (bit & BIT_CREATE) puts("- create .......... dskmgr image.dsk create [files]");
     if (bit & BIT_INFO) puts("- information ..... dskmgr image.dsk info");
     if (bit & BIT_LS) puts("- list files ...... dskmgr image.dsk ls");
-    if (bit & BIT_CP) puts("- copy to local ... dskmgr image.dsk cp filename");
+    if (bit & BIT_CP) puts("- copy to local ... dskmgr image.dsk get filename");
+    if (bit & BIT_WR) puts("- copy to disk .... dskmgr image.dsk put filename");
     if (bit & BIT_CAT) puts("- stdout file  .... dskmgr image.dsk cat filename");
 }
 
@@ -432,13 +433,12 @@ static void wm(unsigned char* buf, int di)
     }
 }
 
-static int parseDisplayName(char* displayName, char* localFileName, char* name, char* ext)
+static int parseDisplayName(char* displayName, char* name, char* ext)
 {
     if (16 <= strlen(displayName)) {
         puts("File not found (invalid length)");
         return 4;
     }
-    strcpy(localFileName, displayName);
     char* cp = strchr(displayName, '.');
     if (cp) {
         *cp = 0;
@@ -448,6 +448,7 @@ static int parseDisplayName(char* displayName, char* localFileName, char* name, 
             return 4;
         }
         strcpy(ext, cp);
+        cp--;
     } else {
         strcpy(ext, "   ");
     }
@@ -463,15 +464,17 @@ static int parseDisplayName(char* displayName, char* localFileName, char* name, 
     for (; i < 3; i++) ext[i] = ' ';
     for (i = 0; name[i]; i++) name[i] = toupper(name[i]);
     for (; i < 8; i++) name[i] = ' ';
+    if (cp) *cp = '.';
     return 0;
 }
 
-static int cp(const char* dsk, char* displayName)
+static int get(const char* dsk, char* displayName)
 {
     char localFileName[16];
     char name[9];
     char ext[4];
-    int parseError = parseDisplayName(displayName, localFileName, name, ext);
+    int parseError = parseDisplayName(displayName, name, ext);
+    strcpy(localFileName, displayName);
     if (parseError) return parseError;
     if (!readDisk(dsk)) return 2;
     for (int i = 0; i < dir.entryCount; i++) {
@@ -491,10 +494,9 @@ static int cp(const char* dsk, char* displayName)
 
 static int cat(const char* dsk, char* displayName)
 {
-    char localFileName[16];
     char name[9];
     char ext[4];
-    int parseError = parseDisplayName(displayName, localFileName, name, ext);
+    int parseError = parseDisplayName(displayName, name, ext);
     if (parseError) return parseError;
     if (!readDisk(dsk)) return 2;
     for (int i = 0; i < dir.entryCount; i++) {
@@ -515,6 +517,32 @@ static int cat(const char* dsk, char* displayName)
     }
     puts("File not found");
     return 4;
+}
+
+static bool setCreateFileInfo(int idx, const char* name, int nameLen, const char* ext, int extLen, unsigned char* data, size_t dataSize)
+{
+    cfi.entries[idx].size = dataSize;
+    cfi.entries[idx].sectorSize = cfi.entries[idx].size / 512;
+    cfi.entries[idx].sectorSize += cfi.entries[idx].size % 512 != 0 ? 1 : 0;
+    cfi.entries[idx].clusterSize = cfi.entries[idx].sectorSize / 2;
+    cfi.entries[idx].clusterSize += cfi.entries[idx].sectorSize % 2;
+    cfi.totalSize += cfi.entries[idx].size;
+    cfi.totalSector += cfi.entries[idx].sectorSize;
+    cfi.totalCluster += cfi.entries[idx].clusterSize;
+    if ((1440 - 1 - 3 * 2 - 5) / 2 <= cfi.totalCluster) {
+        puts("Disk Full");
+        return false;
+    }
+    cfi.entries[idx].data = data;
+    memset(cfi.entries[idx].name, 0x20, 8);
+    memcpy(cfi.entries[idx].name, name, nameLen < 8 ? nameLen : 8);
+    for (int i = 0; i < 8; i++) cfi.entries[idx].name[i] = toupper(cfi.entries[idx].name[i]);
+    memset(cfi.entries[idx].ext, 0x20, 3);
+    if (ext) {
+        memcpy(cfi.entries[idx].ext, ext, extLen < 3 ? extLen : 3);
+        for (int i = 0; i < 3; i++) cfi.entries[idx].ext[i] = toupper(cfi.entries[idx].ext[i]);
+    }
+    return true;
 }
 
 static bool addCreateFileInfo(const char* path)
@@ -553,6 +581,7 @@ static bool addCreateFileInfo(const char* path)
     size_t basSize = 0;
     unsigned char* bas = nullptr;
     const char* name = strrchr(path, '/');
+    if (!name) name = strrchr(path, '\\');
     name = name ? name + 1 : path;
     const char* ext = strchr(name, '.');
     int nameLen = ext ? (int)(ext - name) : (int)strlen(name);
@@ -569,40 +598,11 @@ static bool addCreateFileInfo(const char* path)
     } else {
         printf("%s: Write to disk as a binary file ... %d bytes\n", path, cfi.entries[idx].size);
     }
-    cfi.entries[idx].sectorSize = cfi.entries[idx].size / 512;
-    cfi.entries[idx].sectorSize += cfi.entries[idx].size % 512 != 0 ? 1 : 0;
-    cfi.entries[idx].clusterSize = cfi.entries[idx].sectorSize / 2;
-    cfi.entries[idx].clusterSize += cfi.entries[idx].sectorSize % 2;
-    cfi.totalSize += cfi.entries[idx].size;
-    cfi.totalSector += cfi.entries[idx].sectorSize;
-    cfi.totalCluster += cfi.entries[idx].clusterSize;
-    if ((1440 - 1 - 3 * 2 - 5) / 2 <= cfi.totalCluster) {
-        puts("Disk Full");
+    if (!setCreateFileInfo(idx, name, nameLen, ext, extLen, bas ? bas : bin, cfi.entries[idx].size)) {
         return false;
     }
-    cfi.entries[idx].data = bas ? bas : bin;
-    cfi.entries[idx].originalPath = path;
-    memset(cfi.entries[idx].name, 0x20, 8);
-    memcpy(cfi.entries[idx].name, name, nameLen < 8 ? nameLen : 8);
-    for (int i = 0; i < 8; i++) {
-        cfi.entries[idx].name[i] = toupper(cfi.entries[idx].name[i]);
-    }
-    memset(cfi.entries[cfi.entryCount].ext, 0x20, 3);
-    if (ext) {
-        memcpy(cfi.entries[cfi.entryCount].ext, ext, extLen < 3 ? extLen : 3);
-    }
-    for (int i = 0; i < 3; i++) cfi.entries[idx].ext[i] = toupper(cfi.entries[idx].ext[i]);
     cfi.entryCount++;
     return true;
-}
-
-static void releaseCFI()
-{
-    for (int i = 0; i < MAX_FILES; i++) {
-        if (cfi.entries[i].data) {
-            free(cfi.entries[i].data);
-        }
-    }
 }
 
 static int create(const char* dskPath)
@@ -695,18 +695,59 @@ static int create(const char* dskPath)
     FILE* fp = fopen(dskPath, "wb");
     if (NULL == fp) {
         puts("I/O error");
-        releaseCFI();
         return 6;
     }
     if (sizeof(diskImage) != fwrite(diskImage, 1, sizeof(diskImage), fp)) {
         puts("I/O error");
-        releaseCFI();
         fclose(fp);
         return 6;
     }
     fclose(fp);
-    releaseCFI();
     return 0;
+}
+
+static int put(const char* dsk, char* path)
+{
+    char displayName[4096];
+    char name[9];
+    char ext[4];
+    char* cp = strrchr(path, '/');
+    if (!cp) cp = strrchr(path, '\\');
+    cp = cp ? cp + 1 : path;
+    strcpy(displayName, cp);
+    int parseError = parseDisplayName(displayName, name, ext);
+    if (parseError) return parseError;
+    if (!readDisk(dsk)) return 2;
+    bool isOverwrite = false;
+    cfi.entryCount = 0;
+    for (int i = 0; i < dir.entryCount; i++) {
+        if (dir.entries[i].removed) continue;
+        if (strcasecmp(dir.entries[i].name, name) == 0 && strcasecmp(dir.entries[i].ext, ext) == 0) {
+            // 既存ファイルを更新
+            isOverwrite = true;
+            if (!addCreateFileInfo(path)) {
+                return -1;
+            }
+        } else {
+            // 既存ファイルをそのまま維持
+            unsigned char* data = (unsigned char*)malloc(dir.entries[i].size);
+            if (!data) {
+                puts("No memory");
+                return -1;
+            }
+            wm(data, i);
+            if (!setCreateFileInfo(cfi.entryCount++, dir.entries[i].name, 8, dir.entries[i].ext, 3, data, dir.entries[i].size)) {
+                return -1;
+            }
+        }
+    }
+    if (!isOverwrite) {
+        if (!addCreateFileInfo(path)) {
+            return -1;
+        }
+    }
+    memset(diskImage,0,sizeof(diskImage));
+    return create(dsk);
 }
 
 int main(int argc, char* argv[])
@@ -736,7 +777,14 @@ int main(int argc, char* argv[])
             showUsage(BIT_CP);
             return 1;
         }
-        return cp(argv[1], argv[3]);
+        return get(argv[1], argv[3]);
+    } else if (0 == strcmp(argv[2], "wt") || 0 == strcmp(argv[2], "put")) {
+        if (argc != 4) {
+            showUsage(BIT_WR);
+            return 1;
+        }
+        memset(&cfi, 0, sizeof(cfi));
+        return put(argv[1], argv[3]);
     } else if (0 == strcmp(argv[2], "cat")) {
         if (argc != 4) {
             showUsage(BIT_CAT);
