@@ -369,7 +369,7 @@ class BasicFilter
         if ('#' == *str) return true;
         if (!isdigit(*str) && '.' != *str) return false;
         while (isdigit(*str) || '.' == *str) str++;
-        if ('!' == *str || '%' ==*str) return false;
+        if ('!' == *str || '%' == *str) return false;
         if ((previous & 0x80) || '#' == *str) return true;
         return false;
     }
