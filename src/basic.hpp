@@ -286,6 +286,7 @@ class BasicFilter
                     bool prefix = !isdigit(*line);
                     if (prefix) line++;
                     int i = atoi(line);
+                    printf("decimal = %d\n", i);
                     if (i < 10) {
                         result[ptr++] = 0x11 + i;
                     } else if (i < 256) {
@@ -296,6 +297,7 @@ class BasicFilter
                         result[ptr++] = i & 0xFF;
                         result[ptr++] = (i >> 8) & 0xFF;
                     }
+                    while (isdigit(*line)) line++;
                     if (!prefix) line++;
                     previous = 0;
                     continue;
