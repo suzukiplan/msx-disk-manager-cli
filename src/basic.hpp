@@ -143,6 +143,7 @@ class BasicFilter
 
     unsigned char* txt2bas(const char* src, size_t* basSize)
     {
+        if (0xFF == (unsigned char)src[0]) return nullptr;
         size_t len = strlen(src);
         char* text = (char*)malloc(len + 1);
         if (!text) {
