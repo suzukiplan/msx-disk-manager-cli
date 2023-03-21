@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define MAX_FILES 112
 
@@ -89,6 +90,7 @@ static struct Directory {
             int minute;
             int second;
         } date;
+        unsigned char dateRaw[4];
     } entries[128];
 } dir;
 
@@ -97,6 +99,7 @@ static struct CreateFileInfo {
     struct Entry {
         char name[8];
         char ext[3];
+        unsigned char date[4];
         unsigned int size;
         void* data;
         int sectorSize;
@@ -134,6 +137,24 @@ static void showUsage(int bit)
     if (bit & BIT_RM) puts("- remove file  .... dskmgr image.dsk rm filename");
 }
 
+static const unsigned char* now()
+{
+    static unsigned char buf[4] = {0, 0, 0, 0};
+    if (0 == buf[0] && 0 == buf[1] && 0 == buf[2] && 0 == buf[3]) {
+        time_t t1 = time(nullptr);
+        struct tm* t2 = localtime(&t1);
+        buf[0] = (t2->tm_min & 0b00000111) << 5;
+        buf[0] |= (t2->tm_sec & 0b00111110) >> 1;
+        buf[1] = (t2->tm_hour & 0b00011111) << 3;
+        buf[1] |= (t2->tm_min & 0b00111000) >> 3;
+        buf[2] = ((t2->tm_mon + 1) & 0b00000111) << 5;
+        buf[2] |= (t2->tm_mday) & 0b00011111;
+        buf[3] = ((t2->tm_year - 80) & 0b01111111) << 1;
+        buf[3] |= ((t2->tm_mon + 1) & 0b00001000) >> 3;
+    }
+    return buf;
+}
+
 static void extractDirectoryFromDisk()
 {
     memset(&dir, 0, sizeof(dir));
@@ -157,6 +178,7 @@ static void extractDirectoryFromDisk()
             dir.entries[dir.entryCount].attr.hidden = (*ptr) & 0b00000010 ? true : false;
             dir.entries[dir.entryCount].attr.readOnly = (*ptr) & 0b00000001 ? true : false;
             ptr += 11;
+            memcpy(dir.entries[dir.entryCount].dateRaw, ptr, 4);
             dir.entries[dir.entryCount].date.minute = ((*ptr) & 0b11100000) >> 5;
             dir.entries[dir.entryCount].date.second = ((*ptr) & 0b00011111) << 1;
             ptr++;
@@ -610,6 +632,7 @@ static bool addCreateFileInfo(const char* path, const char* putAs = nullptr)
     } else {
         printf("\n");
     }
+    memcpy(cfi.entries[cfi.entryCount].date, now(), 4);
     if (!setCreateFileInfo(idx, name, nameLen, ext, extLen, bas ? bas : bin, cfi.entries[idx].size)) {
         return false;
     }
@@ -693,8 +716,8 @@ static int create(const char* dskPath)
         d += 3;
         *d = 0;
         d += 11;
-        d += 2; // hour/min/sec
-        d += 2; // year/month/day
+        memcpy(d, cfi.entries[i].date, 4);
+        d += 4;
         memcpy(d, &cfi.entries[i].clusterStart, 2);
         d += 2;
         memcpy(d, &cfi.entries[i].size, 4);
@@ -752,6 +775,7 @@ static int put(const char* dsk, char* path, const char* putAs)
                 return -1;
             }
             wm(data, i);
+            memcpy(cfi.entries[cfi.entryCount].date, dir.entries[i].dateRaw, 4);
             if (!setCreateFileInfo(cfi.entryCount++, dir.entries[i].name, 8, dir.entries[i].ext, 3, data, dir.entries[i].size)) {
                 return -1;
             }

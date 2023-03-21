@@ -74,9 +74,9 @@ Fat ID: 0xF9
 - Entry#3 = 1024 bytes (1 cluster) ... 4: TEXT.BAS
 Available Entries: 3/4
 ../dskmgr ./image.dsk ls
-00:----w  HELLO.BAS           23 bytes  1980.00.00 00:00:00  (C:2, S:12)
-00:----w  HOGE.BAS            30 bytes  1980.00.00 00:00:00  (C:3, S:14)
-00:----w  TEXT.BAS           304 bytes  1980.00.00 00:00:00  (C:4, S:16)
+00:----w  HELLO.BAS           23 bytes  2023.03.21 15:09:08  (C:2, S:12)
+00:----w  HOGE.BAS            30 bytes  2023.03.21 15:09:08  (C:3, S:14)
+00:----w  TEXT.BAS           304 bytes  2023.03.21 15:09:08  (C:4, S:16)
 ../dskmgr ./image.dsk get hello.bas
 ../dskmgr ./image.dsk get hoge.bas
 ../dskmgr ./image.dsk cat hello.bas
