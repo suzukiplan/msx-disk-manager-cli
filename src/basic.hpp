@@ -367,17 +367,14 @@ class BasicFilter
     bool isDouble(char previous, const char* str)
     {
         if ('#' == *str) return true;
-        if (!isdigit(*str) && '.' != *str) return false;
         while (isdigit(*str) || '.' == *str) str++;
-        if ('!' == *str || '%' == *str) return false;
-        if ((previous & 0x80) || '#' == *str) return true;
+        if ('#' == *str) return true;
         return false;
     }
 
     bool isFloat(const char* str)
     {
         if ('!' == *str) return true;
-        if (!isdigit(*str) && '.' != *str) return false;
         while (isdigit(*str) || '.' == *str) str++;
         if ('!' == *str) return true;
         return false;
@@ -386,7 +383,6 @@ class BasicFilter
     bool isDecimal(const char* str)
     {
         if ('%' == *str && isdigit(*(str + 1))) return true;
-        if (!isdigit(*str)) return false;
         while (isdigit(*str)) str++;
         if ('%' == *str) return true;
         return false;
