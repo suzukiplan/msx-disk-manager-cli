@@ -669,7 +669,7 @@ static int create(const char* dskPath)
     f++;
     *f = 0xFF;
     f++;
-    int c = 2;
+    int c = 3;
     int fs = 0;
     for (int i = 0; i < cfi.entryCount; i++) {
         cfi.entries[i].clusterStart = (unsigned short)c;
