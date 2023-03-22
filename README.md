@@ -33,14 +33,11 @@ Windows, Linux, macOS などで使用できる fMSX 形式のディスクイメ�
 2. `create` コマンドで新規ディスクイメージを生成:
   a. HELLO.BAS: 1 で読み込んだ MSX-BASIC のコード
   b. HOGE.BAS: 1 で読み込んだ MSX-BASIC のコード
-  c. TEXT.BAS: テキスト形式の MSX-BASIC のコード (中間コードに自動変換される)
+  c. ATTRAC.BAS: テキスト形式の MSX-BASIC のコード (中間コードに自動変換される)
 3. 生成したディスクイメージの情報を `info` コマンドで確認
 4. 生成したディスクイメージの情報を `ls` コマンドで確認
 5. 作成したディスクイメージからMSX-BASICのコードを `get` コマンドで読み込む（バイナリ差分が出ない事を git 上で確認用）
-6. 作成したディスクイメージからMSX-BASICのコードを `cat` コマンドで出力:
-  a. HELLO.BAS: 標準出力
-  b. HOGE.BAS: 標準出力
-  c. TEXT.BAS: ファイル出力（テキスト差分が出ないことを git 上で確認用）
+6. 作成したディスクイメージからMSX-BASICのコードを `cat` コマンドで出力
 
 ```bash
 % make
@@ -48,10 +45,10 @@ clang++ --std=c++14 -o dskmgr src/dskmgr.cpp
 cd test && make
 ../dskmgr ./wmsx.dsk get hello.bas
 ../dskmgr ./wmsx.dsk get hoge.bas
-../dskmgr ./image.dsk create hello.bas hoge.bas text.bas
+../dskmgr ./image.dsk create hello.bas hoge.bas attrac.bas
 hello.bas: Write to disk as a binary file ... 23 bytes
 hoge.bas: Write to disk as a binary file ... 30 bytes
-text.bas: Convert to MSX-BASIC intermediate code ... 385 -> 304 bytes
+attrac.bas: Convert to MSX-BASIC intermediate code ... 980 -> 906 bytes
 ../dskmgr ./image.dsk info
 [Boot Sector]
             OEM: SZKPLN01
@@ -69,14 +66,14 @@ Creatable Files: 112
 
 [FAT]
 Fat ID: 0xF9
-- Entry#1 = 1024 bytes (1 cluster) ... 2: HELLO.BAS
-- Entry#2 = 1024 bytes (1 cluster) ... 3: HOGE.BAS
-- Entry#3 = 1024 bytes (1 cluster) ... 4: TEXT.BAS
+- Entry#1 = 1024 bytes (1 cluster) ... 3: HELLO.BAS
+- Entry#2 = 1024 bytes (1 cluster) ... 4: HOGE.BAS
+- Entry#3 = 1024 bytes (1 cluster) ... 5: ATTRAC.BAS
 Available Entries: 3/4
 ../dskmgr ./image.dsk ls
-00:----w  HELLO.BAS           23 bytes  2023.03.21 15:09:08  (C:2, S:12)
-00:----w  HOGE.BAS            30 bytes  2023.03.21 15:09:08  (C:3, S:14)
-00:----w  TEXT.BAS           304 bytes  2023.03.21 15:09:08  (C:4, S:16)
+00:----w  HELLO.BAS           23 bytes  2023.03.23 06:55:48  (C:3, S:14)
+00:----w  HOGE.BAS            30 bytes  2023.03.23 06:55:48  (C:4, S:16)
+00:----w  ATTRAC.BAS         906 bytes  2023.03.23 06:55:48  (C:5, S:18)
 ../dskmgr ./image.dsk get hello.bas
 ../dskmgr ./image.dsk get hoge.bas
 ../dskmgr ./image.dsk cat hello.bas
@@ -84,7 +81,6 @@ Available Entries: 3/4
 ../dskmgr ./image.dsk cat hoge.bas
 10 CLS
 20 PRINT"_____HOGE____"
-../dskmgr ./image.dsk cat text.bas >text.bas
 ```
 
 ## Manual
