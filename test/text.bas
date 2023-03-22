@@ -20,8 +20,8 @@
 230 '
 240 ' pixel transformation
 250 '
-260 DEF FN TU(X)=32+CINT((X-X0)/(X1-X0)*WM+.4)
-270 DEF FN TV(Y)=CINT((Y1-Y)/(Y1-Y0)*HM+.4)
+260 DEF FN TU(X)=32+CINT((X-X0)/(X1-X0)*WM+.4!)
+270 DEF FN TV(Y)=CINT((Y1-Y)/(Y1-Y0)*HM+.4!)
 280 '
 290 ' main
 300 '
