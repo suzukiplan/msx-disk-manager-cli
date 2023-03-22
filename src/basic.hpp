@@ -43,6 +43,7 @@ class BasicFilter
         int lineNum;
         int scode;
         int ivalue, linevalue;
+        short svalue;
         char tmpc[32];
         int itmp;
 
@@ -94,7 +95,7 @@ class BasicFilter
                     case 0x0f: //num 10-255
                         ivalue = (cBuf[x]);
                         x += 1;
-                        fprintf(stream, "%%%d", ivalue);
+                        fprintf(stream, "%d", ivalue);
                         break;
                     case 0x11: //num 0
                     case 0x12: //num 1
@@ -106,22 +107,22 @@ class BasicFilter
                     case 0x18: //num 7
                     case 0x19: //num 8
                     case 0x1a: //num 9
-                        fprintf(stream, "%%%d", scode - 0x11);
+                        fprintf(stream, "%d", scode - 0x11);
                         break;
                     case 0x1c: //int num
-                        ivalue = (cBuf[x]) | (cBuf[x + 1] << 8);
+                        svalue = (cBuf[x]) | (cBuf[x + 1] << 8);
                         x += 2;
-                        fprintf(stream, "%%%d", ivalue);
+                        fprintf(stream, "%d", (int)svalue);
                         break;
                     case 0x1d: //単精度BCD浮動小数点数
                     {
-                        fprintf(stream, "!%s", bcdFloatS2String(&cBuf[x]));
+                        fprintf(stream, "%s!", bcdFloatToString(&cBuf[x]));
                         x += 4;
                         break;
                     }
                     case 0x1f: //倍精度BCD浮動小数点数
                     {
-                        fprintf(stream, "#%s", bcdFloatD2String(&cBuf[x]));
+                        fprintf(stream, "%s#", bcdDoubleToString(&cBuf[x]));
                         x += 8;
                         break;
                     }
@@ -237,7 +238,7 @@ class BasicFilter
                         result[ptr++] = (unsigned char)(st->code & 0xFF);
                     }
                     line += strlen(st->word);
-                    if (st->code == 0x8F || st->code == 0x84) {
+                    if (st->code == 0x8F || st->code == 0x84 || st->code == 0x3A8FE6) {
                         // REM (コメント) or DATA を検出したので行末までそのまま出力
                         while (*line) {
                             result[ptr++] = *line;
@@ -297,12 +298,9 @@ class BasicFilter
                     }
                     continue;
                 }
-#if 0
                 // 実数 (単精度 or 倍精度のBCD浮動小数点数)
                 if (isDouble(line) || isFloat(line)) {
                     bool isDouble = this->isDouble(line);
-                    bool prefix = !isdigit(*line);
-                    if (prefix) line++;
                     result[ptr++] = isDouble ? 0x1F : 0x1D;
                     // 数字列切り出し
                     char fstr[128];
@@ -312,12 +310,11 @@ class BasicFilter
                         fstr[fptr++] = *line;
                         line++;
                     }
-                    if (!prefix) line++;
+                    line++;
                     makeBcdFloat(fstr, &result[ptr], isDouble);
                     ptr += isDouble ? 8 : 4;
                     continue;
                 }
-#endif
                 // 10進数変換
                 if (isdigit(*line)) {
                     int i = atoi(line);
@@ -390,7 +387,7 @@ class BasicFilter
         return isdigit(*str);
     }
 
-    const char* bcdFloatS2String(const unsigned char* buf)
+    const char* bcdFloatToString(const unsigned char* buf)
     {
         static char result[256];
         char fmt[256];
@@ -434,7 +431,7 @@ class BasicFilter
         return result;
     }
 
-    const char* bcdFloatD2String(const unsigned char* buf)
+    const char* bcdDoubleToString(const unsigned char* buf)
     {
         static char result[512];
         char fmt[512];
