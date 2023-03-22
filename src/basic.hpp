@@ -143,7 +143,7 @@ class BasicFilter
 
     unsigned char* txt2bas(const char* src, size_t* basSize)
     {
-        if (0xFF == (unsigned char)src[0]) return nullptr;
+        if (0xFF == (unsigned char)src[0] || 0x00 == (unsigned char)src[0]) return nullptr;
         size_t len = strlen(src);
         char* text = (char*)malloc(len + 1);
         if (!text) {
@@ -201,7 +201,6 @@ class BasicFilter
             result[ptr++] = (lineNumber & 0xFF00) >> 8;
 
             // 構文解析
-            char previous = 0x00;
             while (*line) {
                 // ダブルクォーテーションで囲まれている範囲をそのまま出力
                 if ('"' == *line) {
@@ -213,7 +212,6 @@ class BasicFilter
                         result[ptr++] = '"';
                         line++;
                     }
-                    previous = '"';
                     continue;
                 }
                 // ステートメント解析
@@ -239,23 +237,32 @@ class BasicFilter
                         result[ptr++] = (unsigned char)(st->code & 0xFF);
                     }
                     line += strlen(st->word);
-                    if (st->code == 0x8F) {
-                        // REM (コメント) を検出したので行末までそのまま出力
+                    if (st->code == 0x8F || st->code == 0x84) {
+                        // REM (コメント) or DATA を検出したので行末までそのまま出力
                         while (*line) {
                             result[ptr++] = *line;
                             line++;
                         }
-                    } else if (st->code == 0x89 || st->code == 0x8D) {
-                        // GOTO/GOSUB を検出したので行番号を出力
-                        while (' ' == *line || '\t' == *line) line++;
+                    } else if (st->code == 0xD2) {
+                        // SET を検出したので , : or 行末までそのまま出力
+                        while (*line && ',' != *line && ':') {
+                            result[ptr++] = *line;
+                            line++;
+                        }
+                    } else if (st->code == 0x89 || st->code == 0x8D || st->code == 0x8C || st->code == 0xA7 || st->code == 0x93) {
+                        // GOTO/GOSUB/RESTORE/RESUME/LIST を検出したので行番号を出力
+                        while (' ' == *line || '\t' == *line) {
+                            result[ptr++] = ' ';
+                            line++;
+                        }
                         int i = atoi(line);
-                        result[ptr++] = ' ';
-                        result[ptr++] = 0x0E;
-                        result[ptr++] = i & 0xFF;
-                        result[ptr++] = (i >> 8) & 0xFF;
-                        while (isdigit(*line)) line++;
+                        if (i) {
+                            result[ptr++] = 0x0E;
+                            result[ptr++] = i & 0xFF;
+                            result[ptr++] = (i >> 8) & 0xFF;
+                            while (isdigit(*line)) line++;
+                        }
                     }
-                    previous = st->code;
                     continue;
                 }
                 // 8進数解析
@@ -267,7 +274,6 @@ class BasicFilter
                     result[ptr++] = 0x0B;
                     result[ptr++] = (unsigned char)(hex & 0xFF);
                     result[ptr++] = (unsigned char)((hex & 0xFF00) >> 8);
-                    previous = 0x0B;
                     continue;
                 }
                 // 16進数変換
@@ -279,32 +285,22 @@ class BasicFilter
                     result[ptr++] = 0x0C;
                     result[ptr++] = (unsigned char)(hex & 0xFF);
                     result[ptr++] = (unsigned char)((hex & 0xFF00) >> 8);
-                    previous = 0;
                     continue;
                 }
-                // 10進数変換
-                if (isDecimal(line)) {
-                    bool prefix = !isdigit(*line);
-                    if (prefix) line++;
-                    int i = atoi(line);
-                    if (i < 10) {
-                        result[ptr++] = 0x11 + i;
-                    } else if (i < 256) {
-                        result[ptr++] = 0x0F;
-                        result[ptr++] = i & 0xFF;
-                    } else {
-                        result[ptr++] = 0x1C;
-                        result[ptr++] = i & 0xFF;
-                        result[ptr++] = (i >> 8) & 0xFF;
+                // 2進数変換
+                if (0 == strncasecmp(line, "&B", 2)) {
+                    line += 2;
+                    result[ptr++] = '&';
+                    result[ptr++] = 'B';
+                    while ('0' == *line || '1' == *line) {
+                        result[ptr++] = *line;
                     }
-                    while (isdigit(*line)) line++;
-                    if (!prefix) line++;
-                    previous = 0;
                     continue;
                 }
+#if 0
                 // 実数 (単精度 or 倍精度のBCD浮動小数点数)
-                if (isDouble(previous, line) || isFloat(line)) {
-                    bool isDouble = this->isDouble(previous, line);
+                if (isDouble(line) || isFloat(line)) {
+                    bool isDouble = this->isDouble(line);
                     bool prefix = !isdigit(*line);
                     if (prefix) line++;
                     result[ptr++] = isDouble ? 0x1F : 0x1D;
@@ -319,32 +315,33 @@ class BasicFilter
                     if (!prefix) line++;
                     makeBcdFloat(fstr, &result[ptr], isDouble);
                     ptr += isDouble ? 8 : 4;
-                    previous = 0;
                     continue;
                 }
-                // 2進数変換
-                if (0 == strncasecmp(line, "&B", 2)) {
-                    line += 2;
-                    result[ptr++] = '&';
-                    result[ptr++] = 'B';
-                    while ('0' == *line || '1' == *line) {
-                        result[ptr++] = *line;
+#endif
+                // 10進数変換
+                if (isdigit(*line)) {
+                    int i = atoi(line);
+                    if (i < 10) {
+                        result[ptr++] = 0x11 + i;
+                    } else if (i < 256) {
+                        result[ptr++] = 0x0F;
+                        result[ptr++] = i & 0xFF;
+                    } else {
+                        result[ptr++] = 0x1C;
+                        result[ptr++] = i & 0xFF;
+                        result[ptr++] = (i >> 8) & 0xFF;
                     }
-                    previous = 0;
+                    while (isdigit(*line)) line++;
                     continue;
                 }
                 // 何れにも該当しない (そのまま出力)
                 result[ptr++] = *line;
-                previous = *line;
                 line++;
             }
             result[ptr++] = 0;
-            line = strtok(NULL, "\n");
-        }
-        // オフセット更新
-        if (1 < ptr) {
             offset = 0x8000 + ptr;
             memcpy(&result[optr], &offset, 2);
+            line = strtok(NULL, "\n");
         }
         result[ptr++] = 0;
         result[ptr++] = 0;
@@ -364,28 +361,33 @@ class BasicFilter
         unsigned int code;
     } stbl[256] = {{"", 0}, {">", 0xEE}, {"CMD", 0xD7}, {"ERR", 0xE2}, {"LIST", 0x93}, {"PAINT", 0xBF}, {"SPRITE", 0xC7}, {"=", 0xEF}, {"COLOR", 0xBD}, {"ERROR", 0xA6}, {"LLIST", 0x9E}, {"PDL", 0xFFA4}, {"SQR", 0xFF87}, {"<", 0xF0}, {"CONT", 0x99}, {"EXP", 0xFF8B}, {"LOAD", 0xB5}, {"PEEK", 0xFF97}, {"STEP", 0xDC}, {"+", 0xF1}, {"COPY", 0xD6}, {"FIELD", 0xB1}, {"LOC", 0xFFAC}, {"PLAY", 0xC1}, {"STICK", 0xFFA2}, {"-", 0xF2}, {"COS", 0xFF8C}, {"FILES", 0xB7}, {"LOCATE", 0xD8}, {"POINT", 0xED}, {"STOP", 0x90}, {"*", 0xF3}, {"CSAVE", 0x9A}, {"FIX", 0xFFA1}, {"LOF", 0xFFAD}, {"POKE", 0x98}, {"STR$", 0xFF93}, {"/", 0xF4}, {"CSNG", 0xFF9F}, {"FN", 0xDE}, {"LOG", 0xFF8A}, {"POS", 0xFF91}, {"STRIG", 0xFFA3}, {"^", 0xF5}, {"CSRLIN", 0xE8}, {"FOR", 0x82}, {"LPOS", 0xFF9C}, {"PRESET", 0xC3}, {"STRING$", 0xE3}, {"\\", 0xFC}, {"CVD", 0xFFAA}, {"FPOS", 0xFFA7}, {"LPRINT", 0x9D}, {"PRINT", 0x91}, {"SWAP", 0xA4}, {"ABS", 0xFF86}, {"CVI", 0xFFA8}, {"FRE", 0xFF8F}, {"LSET", 0xB8}, {"PSET", 0xC2}, {"TAB(", 0xDB}, {"AND", 0xF6}, {"CVS", 0xFFA9}, {"GET", 0xB2}, {"MAX", 0xCD}, {"PUT", 0xB3}, {"TAN", 0xFF8D}, {"ASC", 0xFF95}, {"DATA", 0x84}, {"GOSUB", 0x8D}, {"MERGE", 0xB6}, {"READ", 0x87}, {"THEN", 0xDA}, {"ATN", 0xFF8E}, {"DEF", 0x97}, {"GOTO", 0x89}, {"MID$", 0xFF83}, {"REM", 0x8F}, {"TIME", 0xCB}, {"ATTR$", 0xE9}, {"DEFDBL", 0xAE}, {"HEX$", 0xFF9B}, {"MKD$", 0xFFB0}, {"RENUM", 0xAA}, {"TO", 0xD9}, {"AUTO", 0xA9}, {"DEFINT", 0xAC}, {"IF", 0x8B}, {"MKI$", 0xFFAE}, {"RESTORE", 0x8C}, {"TROFF", 0xA3}, {"BASE", 0xC9}, {"DEFSNG", 0xAD}, {"IMP", 0xFA}, {"MKS$", 0xFFAF}, {"RESUME", 0xA7}, {"TRON", 0xA2}, {"BEEP", 0xC0}, {"DEFSTR", 0xAB}, {"INKEY$", 0xEC}, {"MOD", 0xFB}, {"RETURN", 0x8E}, {"USING", 0xE4}, {"BIN$", 0xFF9D}, {"DELETE", 0xA8}, {"INP", 0xFF90}, {"MOTOR", 0xCE}, {"RIGHT$", 0xFF82}, {"USR", 0xDD}, {"BLOAD", 0xCF}, {"DIM", 0x86}, {"INPUT", 0x85}, {"NAME", 0xD3}, {"RND", 0xFF88}, {"VAL", 0xFF94}, {"BSAVE", 0xD0}, {"DRAW", 0xBE}, {"INSTR", 0xE5}, {"NEW", 0x94}, {"RSET", 0xB9}, {"VARPTR", 0xE7}, {"CALL", 0xCA}, {"DSKF", 0xFFA6}, {"INT", 0xFF85}, {"NEXT", 0x83}, {"RUN", 0x8A}, {"VDP", 0xC8}, {"CDBL", 0xFFA0}, {"DSKI$", 0xEA}, {"IPL", 0xD5}, {"NOT", 0xE0}, {"SAVE", 0xBA}, {"VPEEK", 0xFF98}, {"CHR$", 0xFF96}, {"DSKO$", 0xD1}, {"KEY", 0xCC}, {"OCT$", 0xFF9A}, {"SCREEN", 0xC5}, {"VPOKE", 0xC6}, {"CINT", 0xFF9E}, {"ELSE", 0x3AA1}, {"KILL", 0xD4}, {"OFF", 0xEB}, {"SET", 0xD2}, {"WAIT", 0x96}, {"CIRCLE", 0xBC}, {"END", 0x81}, {"LEFT$", 0xFF81}, {"ON", 0x95}, {"SGN", 0xFF84}, {"WIDTH", 0xA0}, {"CLEAR", 0x92}, {"EOF", 0xFFAB}, {"LEN", 0xFF92}, {"OPEN", 0xB0}, {"SIN", 0xFF89}, {"XOR", 0xF8}, {"CLOAD", 0x9B}, {"EQV", 0xF9}, {"LET", 0x88}, {"OR", 0xF7}, {"SOUND", 0xC4}, {"CLOSE", 0xB4}, {"ERASE", 0xA5}, {"LFILES", 0xBB}, {"OUT", 0x9C}, {"SPACE$", 0xFF99}, {"CLS", 0x9F}, {"ERL", 0xE1}, {"LINE", 0xAF}, {"PAD", 0xFFA5}, {"SPC(", 0xDF}, {"'", 0x3A8FE6}, {"", 0}};
 
-    bool isDouble(char previous, const char* str)
+    bool isDouble(const char* str)
     {
-        if ('#' == *str) return true;
-        while (isdigit(*str) || '.' == *str) str++;
+        int dot = 0;
+        while (isdigit(*str) || '.' == *str) {
+            if ('.' == *str) dot++;
+            str++;
+        }
+        if (1 < dot) return false;
         if ('#' == *str) return true;
         return false;
     }
 
     bool isFloat(const char* str)
     {
-        if ('!' == *str) return true;
-        while (isdigit(*str) || '.' == *str) str++;
+        int dot = 0;
+        while (isdigit(*str) || '.' == *str) {
+            if ('.' == *str) dot++;
+            str++;
+        }
+        if (1 < dot) return false;
         if ('!' == *str) return true;
         return false;
     }
 
     bool isDecimal(const char* str)
     {
-        if ('%' == *str && isdigit(*(str + 1))) return true;
-        while (isdigit(*str)) str++;
-        if ('%' == *str) return true;
-        return false;
+        return isdigit(*str);
     }
 
     const char* bcdFloatS2String(const unsigned char* buf)
