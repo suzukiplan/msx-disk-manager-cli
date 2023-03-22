@@ -331,6 +331,14 @@ class BasicFilter
                     while (isdigit(*line)) line++;
                     continue;
                 }
+                // 英数字
+                if (isalpha(*line)) {
+                    while (isalnum(*line)) {
+                        result[ptr++] = *line;
+                        line++;
+                    }
+                    continue;
+                }
                 // 何れにも該当しない (そのまま出力)
                 result[ptr++] = *line;
                 line++;
