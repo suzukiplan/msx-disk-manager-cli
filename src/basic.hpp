@@ -371,8 +371,11 @@ class BasicFilter
         int dot = 0;
         int digit = 0;
         while (isdigit(*str) || '.' == *str) {
-            if ('.' == *str) dot++;
-            else digit++;
+            if ('.' == *str) {
+                dot++;
+            } else {
+                digit++;
+            }
             str++;
         }
         if (1 < dot || digit < 1) return false;
@@ -387,8 +390,11 @@ class BasicFilter
         int dot = 0;
         int digit = 0;
         while (isdigit(*str) || '.' == *str) {
-            if ('.' == *str) dot++;
-            else digit++;
+            if ('.' == *str) {
+                dot++;
+            } else {
+                digit++;
+            }
             str++;
         }
         if (1 < dot || digit < 1) return false;
