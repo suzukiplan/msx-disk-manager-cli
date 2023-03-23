@@ -180,3 +180,7 @@ Total using cluster: 7 (7168 bytes)
   - MSX: Gilbert François Duivesteijn
     - URL: [https://github.com/gilbertfrancois/msx](https://github.com/gilbertfrancois/msx)
     - [Apache License Version 2.0](https://github.com/gilbertfrancois/msx/blob/master/LICENSE)
+  - VDP Timing Test
+    - Copyright © 2020 Pedro Gimeno Fortea.
+    - URL: [https://notabug.org/pgimeno/vdptest/](https://notabug.org/pgimeno/vdptest/)
+    - [Expat License](https://notabug.org/pgimeno/vdptest/src/master/LICENSE.md)
