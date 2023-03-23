@@ -169,3 +169,14 @@ Total using cluster: 7 (7168 bytes)
 ```
 
 - `filename` で指定した `image.dsk` 内のファイルを削除します
+
+## License
+
+- MSX Disk Manager for CLI ([src/dskmgr.cpp](src/dskmgr.cpp))
+  - [MIT](LICENSE.txt)
+- MSX-BASIC Filter ([src/basic.hpp](src/basic.hpp))
+  - [MIT](LICENSE.txt)
+- Test Programs:
+  - MSX: Gilbert François Duivesteijn
+    - URL: [https://github.com/gilbertfrancois/msx](https://github.com/gilbertfrancois/msx)
+    - [Apache License Version 2.0](https://github.com/gilbertfrancois/msx/blob/master/LICENSE)
