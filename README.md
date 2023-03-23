@@ -172,15 +172,11 @@ Total using cluster: 7 (7168 bytes)
 
 ## License
 
-- MSX Disk Manager for CLI ([src/dskmgr.cpp](src/dskmgr.cpp))
-  - [MIT](LICENSE.txt)
-- MSX-BASIC Filter ([src/basic.hpp](src/basic.hpp))
-  - [MIT](LICENSE.txt)
+- MSX Disk Manager for CLI ([src/dskmgr.cpp](src/dskmgr.cpp)) ... [MIT](LICENSE.txt)
+- MSX-BASIC Filter ([src/basic.hpp](src/basic.hpp)) ... [MIT](LICENSE.txt)
 - Test Programs:
-  - MSX: Gilbert François Duivesteijn
+  - MSX: Gilbert François Duivesteijn ... [Apache License Version 2.0](https://github.com/gilbertfrancois/msx/blob/master/LICENSE)
     - URL: [https://github.com/gilbertfrancois/msx](https://github.com/gilbertfrancois/msx)
-    - [Apache License Version 2.0](https://github.com/gilbertfrancois/msx/blob/master/LICENSE)
-  - VDP Timing Test
+  - VDP Timing Test ... [Expat License](https://notabug.org/pgimeno/vdptest/src/master/LICENSE.md)
     - Copyright © 2020 Pedro Gimeno Fortea.
     - URL: [https://notabug.org/pgimeno/vdptest/](https://notabug.org/pgimeno/vdptest/)
-    - [Expat License](https://notabug.org/pgimeno/vdptest/src/master/LICENSE.md)
