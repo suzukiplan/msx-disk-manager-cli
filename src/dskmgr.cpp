@@ -351,28 +351,19 @@ static int info(const char* dsk)
     printf(" Hidden Sectors: %d\n", boot.hiddenSector);
     puts("\n[FAT]");
     printf("Fat ID: 0x%02X\n", fat.fatId);
-    int availableEntries = 0;
-    for (int i = 0; i < fat.entryCount; i++) {
-        if (0 < fat.entries[i].clusterCount) {
-            printf("- Entry#%d = %d bytes (%d cluster) ... %d: ", i, boot.clusterSize * boot.sectorSize * fat.entries[i].clusterCount, fat.entries[i].clusterCount, fat.entries[i].cluster[0]);
-            bool found = false;
-            for (int j = 0; j < dir.entryCount; j++) {
-                for (int jj = 0; jj < fat.entries[i].clusterCount; jj++) {
-                    if (dir.entries[j].cluster == fat.entries[i].cluster[jj]) {
-                        puts(dir.entries[j].displayName);
-                        found = true;
-                        break;
-                    }
-                }
-                if (found) break;
+    int usingCluster = 1;
+    for (int i = 0; i < dir.entryCount; i++) {
+        if (!dir.entries[i].removed) {
+            printf("- dirent#%d (%s) ... %d", i, dir.entries[i].displayName, dir.entries[i].cluster);
+            usingCluster++;
+            for (int j = 0; j < fat.entries[i + 1].clusterCount; j++) {
+                printf(",%d", fat.entries[i + 1].cluster[j]);
+                usingCluster++;
             }
-            if (!found) {
-                puts("???");
-            }
-            availableEntries++;
+            printf("\n");
         }
     }
-    printf("Available Entries: %d/%d\n", availableEntries, fat.entryCount);
+    printf("Total using cluster: %d (%d bytes)\n", usingCluster, usingCluster * boot.clusterSize * boot.sectorSize);
     return 0;
 }
 
@@ -386,74 +377,40 @@ static int ls(const char* dsk)
     return 0;
 }
 
-static void wr(FILE* fp, int di)
+static void wm(FILE* fp, unsigned char* buf, int di)
 {
     int size = dir.entries[di].size;
-    int bp = boot.dataPosition;
-    // FATエントリを検索
-    for (int i = 0; i < fat.entryCount; i++) {
-        if (0 < fat.entries[i].clusterCount) {
-            for (int ii = 0; ii < fat.entries[i].clusterCount; ii++) {
-                if (fat.entries[i].cluster[ii] == dir.entries[di].cluster) {
-                    for (int j = ii; j < fat.entries[i].clusterCount; j++) {
-                        for (int k = 0; k < boot.clusterSize; k++) {
-                            int s = bp + (fat.entries[i].cluster[j] - 1) * boot.clusterSize + k;
-                            int n = size < boot.sectorSize ? size : boot.sectorSize;
-                            fwrite(diskImage[s], 1, n, fp);
-                            size -= n;
-                            if (size < 1) {
-                                return;
-                            }
-                        }
-                    }
-                    return;
-                }
-            }
-        }
-    }
-    // FATテーブルが見つからないのでディレクトリエントリの先頭クラスタからシーケンシャルに読み出す
-    // ※MSXのディスクのFATは概ね壊れているのでこのケースに読み出しが行われる
-    bp += (dir.entries[di].cluster - 1) * boot.clusterSize;
-    while (0 < size && bp < boot.numberOfSector) {
+    // 最初のクラスタをディレクトリエントリから出力
+    for (int i = 0; 0 < size && i < boot.clusterSize; i++) {
+        int sector = boot.dataPosition;
+        sector += (dir.entries[di].cluster - 1) * boot.clusterSize;
+        sector += i;
         int n = size < boot.sectorSize ? size : boot.sectorSize;
-        fwrite(diskImage[bp++], 1, n, fp);
+        if (fp) {
+            fwrite(diskImage[sector], 1, n, fp);
+        }
+        if (buf) {
+            memcpy(buf, diskImage[sector], n);
+            buf += n;
+        }
         size -= n;
     }
-}
-
-static void wm(unsigned char* buf, int di)
-{
-    int size = dir.entries[di].size;
-    int bp = boot.dataPosition;
-    // FATエントリを検索
-    for (int i = 0; i < fat.entryCount; i++) {
-        if (0 < fat.entries[i].clusterCount) {
-            for (int ii = 0; ii < fat.entries[i].clusterCount; ii++) {
-                if (fat.entries[i].cluster[ii] == dir.entries[di].cluster) {
-                    for (int j = ii; j < fat.entries[i].clusterCount; j++) {
-                        for (int k = 0; k < boot.clusterSize; k++) {
-                            int s = bp + (fat.entries[i].cluster[j] - 1) * boot.clusterSize + k;
-                            int n = size < boot.sectorSize ? size : boot.sectorSize;
-                            memcpy(buf, diskImage[s], n);
-                            buf += n;
-                            size -= n;
-                            if (size < 1) {
-                                return;
-                            }
-                        }
-                    }
-                    return;
-                }
+    // 2番目以降のクラスとをFATから出力
+    for (int ii = 0; 0 < size && ii < fat.entries[di + 1].clusterCount; ii++) {
+        for (int i = 0; 0 < size && i < boot.clusterSize; i++) {
+            int sector = boot.dataPosition;
+            sector += (fat.entries[di + 1].cluster[ii] - 1) * boot.clusterSize;
+            sector += i;
+            int n = size < boot.sectorSize ? size : boot.sectorSize;
+            if (fp) {
+                fwrite(diskImage[sector], 1, n, fp);
             }
+            if (buf) {
+                memcpy(buf, diskImage[sector], n);
+                buf += n;
+            }
+            size -= n;
         }
-    }
-    // FATテーブルが見つからないのでディレクトリエントリの先頭クラスタからシーケンシャルに読み出す
-    // ※MSXのディスクのFATは概ね壊れているのでこのケースに読み出しが行われる
-    bp += (dir.entries[di].cluster - 1) * boot.clusterSize;
-    while (0 < size && bp < boot.numberOfSector) {
-        int n = size < boot.sectorSize ? size : boot.sectorSize;
-        memcpy(buf, diskImage[bp++], n);
-        size -= n;
     }
 }
 
@@ -506,7 +463,7 @@ static int get(const char* dsk, char* displayName, const char* getAs)
         if (strcmp(dir.entries[i].name, name) == 0) {
             if (strcmp(dir.entries[i].ext, ext) == 0) {
                 FILE* fp = fopen(getAs ? getAs : localFileName, "wb");
-                wr(fp, i);
+                wm(fp, nullptr, i);
                 fclose(fp);
                 return 0;
             }
@@ -529,11 +486,11 @@ static int cat(const char* dsk, char* displayName)
             if (strcmp(dir.entries[i].ext, ext) == 0) {
                 if (0 == strncmp(ext, "BAS", 3)) {
                     unsigned char* buf = (unsigned char*)malloc(dir.entries[i].size);
-                    wm(buf, i);
+                    wm(nullptr, buf, i);
                     bf.bas2txt(stdout, buf);
                     free(buf);
                 } else {
-                    wr(stdout, i);
+                    wm(stdout, nullptr, i);
                 }
                 return 0;
             }
@@ -669,11 +626,13 @@ static int create(const char* dskPath)
     f++;
     *f = 0xFF;
     f++;
-    int c = 3;
+    int c = 2;
     int fs = 0;
     for (int i = 0; i < cfi.entryCount; i++) {
-        cfi.entries[i].clusterStart = (unsigned short)c;
-        for (int ii = 0; ii < cfi.entries[i].clusterSize; ii++) {
+        // 最初のクラスタ番号はディレクトリエントリにのみ記憶
+        cfi.entries[i].clusterStart = (unsigned short)c++;
+        // 2番目以降のクラスタ番号をFATに記憶
+        for (int ii = 1; ii < cfi.entries[i].clusterSize; ii++) {
             if (0 == fs) {
                 *f = (unsigned char)(c & 0xFF);
                 f++;
@@ -687,7 +646,7 @@ static int create(const char* dskPath)
             c++;
             fs = 1 - fs;
         }
-        // write FFF
+        // 終端コード (0xFFF)
         if (0 == fs) {
             *f = 0xFF;
             f++;
@@ -774,7 +733,7 @@ static int put(const char* dsk, char* path, const char* putAs)
                 puts("No memory");
                 return -1;
             }
-            wm(data, i);
+            wm(nullptr, data, i);
             memcpy(cfi.entries[cfi.entryCount].date, dir.entries[i].dateRaw, 4);
             if (!setCreateFileInfo(cfi.entryCount++, dir.entries[i].name, 8, dir.entries[i].ext, 3, data, dir.entries[i].size)) {
                 return -1;
@@ -815,7 +774,7 @@ static int rm(const char* dsk, char* path)
                 puts("No memory");
                 return -1;
             }
-            wm(data, i);
+            wm(nullptr, data, i);
             if (!setCreateFileInfo(cfi.entryCount++, dir.entries[i].name, 8, dir.entries[i].ext, 3, data, dir.entries[i].size)) {
                 return -1;
             }

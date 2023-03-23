@@ -45,10 +45,12 @@ clang++ --std=c++14 -o dskmgr src/dskmgr.cpp
 cd test && make
 ../dskmgr ./wmsx.dsk get hello.bas
 ../dskmgr ./wmsx.dsk get hoge.bas
-../dskmgr ./image.dsk create hello.bas hoge.bas attrac.bas
+../dskmgr ./image.dsk create hello.bas hoge.bas attrac.bas barcode.bas blocks1.bas
 hello.bas: Write to disk as a binary file ... 23 bytes
 hoge.bas: Write to disk as a binary file ... 30 bytes
-attrac.bas: Convert to MSX-BASIC intermediate code ... 980 -> 906 bytes
+attrac.bas: Convert to MSX-BASIC intermediate code ... 978 -> 906 bytes
+barcode.bas: Convert to MSX-BASIC intermediate code ... 466 -> 433 bytes
+blocks1.bas: Convert to MSX-BASIC intermediate code ... 2097 -> 1877 bytes
 ../dskmgr ./image.dsk info
 [Boot Sector]
             OEM: SZKPLN01
@@ -66,14 +68,18 @@ Creatable Files: 112
 
 [FAT]
 Fat ID: 0xF9
-- Entry#1 = 1024 bytes (1 cluster) ... 3: HELLO.BAS
-- Entry#2 = 1024 bytes (1 cluster) ... 4: HOGE.BAS
-- Entry#3 = 1024 bytes (1 cluster) ... 5: ATTRAC.BAS
-Available Entries: 3/4
+- dirent#0 (HELLO.BAS) ... 2
+- dirent#1 (HOGE.BAS) ... 3
+- dirent#2 (ATTRAC.BAS) ... 4
+- dirent#3 (BARCODE.BAS) ... 5
+- dirent#4 (BLOCKS1.BAS) ... 6,7
+Total using cluster: 7 (7168 bytes)
 ../dskmgr ./image.dsk ls
-00:----w  HELLO.BAS           23 bytes  2023.03.23 06:55:48  (C:3, S:14)
-00:----w  HOGE.BAS            30 bytes  2023.03.23 06:55:48  (C:4, S:16)
-00:----w  ATTRAC.BAS         906 bytes  2023.03.23 06:55:48  (C:5, S:18)
+00:----w  HELLO.BAS           23 bytes  2023.03.23 14:52:24  (C:2, S:14)
+00:----w  HOGE.BAS            30 bytes  2023.03.23 14:52:24  (C:3, S:16)
+00:----w  ATTRAC.BAS         906 bytes  2023.03.23 14:52:24  (C:4, S:18)
+00:----w  BARCODE.BAS        433 bytes  2023.03.23 14:52:24  (C:5, S:20)
+00:----w  BLOCKS1.BAS       1877 bytes  2023.03.23 14:52:24  (C:6, S:22)
 ../dskmgr ./image.dsk get hello.bas
 ../dskmgr ./image.dsk get hoge.bas
 ../dskmgr ./image.dsk cat hello.bas
