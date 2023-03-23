@@ -381,7 +381,7 @@ static int ls(const char* dsk)
     if (!readDisk(dsk)) return 2;
     for (int i = 0; i < dir.entryCount; i++) {
         if (dir.entries[i].removed) continue;
-        printf("%02X:%c%c%c%c%c  %-12s  %8u bytes  %4d.%02d.%02d %02d:%02d:%02d  (C:%d, S:%d)\n", dir.entries[i].attr.raw, dir.entries[i].attr.dirent ? 'd' : '-', dir.entries[i].attr.volumeLabel ? 'v' : '-', dir.entries[i].attr.systemFile ? 's' : '-', dir.entries[i].attr.hidden ? 'h' : '-', dir.entries[i].attr.readOnly ? '-' : 'w', dir.entries[i].displayName, dir.entries[i].size, dir.entries[i].date.year, dir.entries[i].date.month, dir.entries[i].date.day, dir.entries[i].date.hour, dir.entries[i].date.minute, dir.entries[i].date.second, dir.entries[i].cluster, boot.dataPosition + (dir.entries[i].cluster - 2) * boot.clusterSize);
+        printf("%02X:%c%c%c%c%c  %-12s  %8u bytes  %4d.%02d.%02d %02d:%02d:%02d  (C:%d, S:%d)\n", dir.entries[i].attr.raw, dir.entries[i].attr.dirent ? 'd' : '-', dir.entries[i].attr.volumeLabel ? 'v' : '-', dir.entries[i].attr.systemFile ? 's' : '-', dir.entries[i].attr.hidden ? 'h' : '-', dir.entries[i].attr.readOnly ? '-' : 'w', dir.entries[i].displayName, dir.entries[i].size, dir.entries[i].date.year, dir.entries[i].date.month, dir.entries[i].date.day, dir.entries[i].date.hour, dir.entries[i].date.minute, dir.entries[i].date.second, dir.entries[i].cluster, boot.dataPosition + (dir.entries[i].cluster - 1) * boot.clusterSize);
     }
     return 0;
 }
