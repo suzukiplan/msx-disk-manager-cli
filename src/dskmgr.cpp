@@ -807,6 +807,7 @@ static int rm(const char* dsk, char* path)
                 return -1;
             }
             wm(nullptr, data, i);
+            memcpy(cfi.entries[cfi.entryCount].date, dir.entries[i].dateRaw, 4);
             if (!setCreateFileInfo(cfi.entryCount++, dir.entries[i].name, 8, dir.entries[i].ext, 3, data, dir.entries[i].size)) {
                 return -1;
             }
