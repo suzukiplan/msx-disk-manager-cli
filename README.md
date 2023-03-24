@@ -42,12 +42,17 @@ clang++ --std=c++14 -o dskmgr src/dskmgr.cpp
 cd test && make
 ../dskmgr ./wmsx.dsk get hello.bas
 ../dskmgr ./wmsx.dsk get hoge.bas
-../dskmgr ./image.dsk create hello.bas hoge.bas attrac.bas barcode.bas blocks1.bas
+../dskmgr ./image.dsk create hello.bas hoge.bas attrac.bas barcode.bas blocks1.bas cmapload.bas cyrmap.bin cmapsave.bas vdptest.bin vdptest.bas
 hello.bas: Write to disk as a binary file ... 23 bytes
 hoge.bas: Write to disk as a binary file ... 30 bytes
 attrac.bas: Convert to MSX-BASIC intermediate code ... 978 -> 906 bytes
 barcode.bas: Convert to MSX-BASIC intermediate code ... 466 -> 433 bytes
 blocks1.bas: Convert to MSX-BASIC intermediate code ... 2097 -> 1877 bytes
+cmapload.bas: Convert to MSX-BASIC intermediate code ... 489 -> 432 bytes
+cyrmap.bin: Write to disk as a binary file ... 2056 bytes
+cmapsave.bas: Convert to MSX-BASIC intermediate code ... 319 -> 301 bytes
+vdptest.bin: Write to disk as a binary file ... 1237 bytes
+vdptest.bas: Convert to MSX-BASIC intermediate code ... 253 -> 210 bytes
 ../dskmgr ./image.dsk info
 [Boot Sector]
             OEM: SZKPLN01
@@ -62,6 +67,8 @@ Creatable Files: 112
         Sectors: 9 per track
      Disk Sides: 2
  Hidden Sectors: 0
+      Volume ID: 1B,15,58,E8
+     Dirty Flag: 36
 
 [FAT]
 Fat ID: 0xF9
@@ -70,13 +77,25 @@ Fat ID: 0xF9
 - dirent#2 (ATTRAC.BAS) ... 4
 - dirent#3 (BARCODE.BAS) ... 5
 - dirent#4 (BLOCKS1.BAS) ... 6,7
-Total using cluster: 7 (7168 bytes)
+- dirent#5 (CMAPLOAD.BAS) ... 8
+- dirent#6 (CYRMAP.BIN) ... 9,10,11
+- dirent#7 (CMAPSAVE.BAS) ... 12
+- dirent#8 (VDPTEST.BIN) ... 13,14
+- dirent#9 (VDPTEST.BAS) ... 15
+Total using cluster: 15 (15360 bytes)
 ../dskmgr ./image.dsk ls
-00:----w  HELLO.BAS           23 bytes  2023.03.23 14:52:24  (C:2, S:14)
-00:----w  HOGE.BAS            30 bytes  2023.03.23 14:52:24  (C:3, S:16)
-00:----w  ATTRAC.BAS         906 bytes  2023.03.23 14:52:24  (C:4, S:18)
-00:----w  BARCODE.BAS        433 bytes  2023.03.23 14:52:24  (C:5, S:20)
-00:----w  BLOCKS1.BAS       1877 bytes  2023.03.23 14:52:24  (C:6, S:22)
+00:----w  HELLO.BAS           23 bytes  2023.03.24 09:56:54  (C:2, S:14)
+00:----w  HOGE.BAS            30 bytes  2023.03.24 09:56:54  (C:3, S:16)
+00:----w  ATTRAC.BAS         906 bytes  2023.03.24 09:56:54  (C:4, S:18)
+00:----w  BARCODE.BAS        433 bytes  2023.03.24 09:56:54  (C:5, S:20)
+00:----w  BLOCKS1.BAS       1877 bytes  2023.03.24 09:56:54  (C:6, S:22)
+00:----w  CMAPLOAD.BAS       432 bytes  2023.03.24 09:56:54  (C:8, S:26)
+00:----w  CYRMAP.BIN        2056 bytes  2023.03.24 09:56:54  (C:9, S:28)
+00:----w  CMAPSAVE.BAS       301 bytes  2023.03.24 09:56:54  (C:12, S:34)
+00:----w  VDPTEST.BIN       1237 bytes  2023.03.24 09:56:54  (C:13, S:36)
+00:----w  VDPTEST.BAS        210 bytes  2023.03.24 09:56:54  (C:15, S:40)
+Total Size:    7505 bytes
+ Free Size:  715776 bytes (699 clusters)
 ../dskmgr ./image.dsk get hello.bas
 ../dskmgr ./image.dsk get hoge.bas
 ../dskmgr ./image.dsk cat hello.bas
