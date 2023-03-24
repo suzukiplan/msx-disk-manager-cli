@@ -323,10 +323,22 @@ class BasicFilter
                     } else if (i < 256) {
                         result[ptr++] = 0x0F;
                         result[ptr++] = i & 0xFF;
-                    } else {
+                    } else if (i < 65536) {
                         result[ptr++] = 0x1C;
                         result[ptr++] = i & 0xFF;
                         result[ptr++] = (i >> 8) & 0xFF;
+                    } else {
+                        // 2バイトに収まりきらないので実数にする
+                        result[ptr++] = 0x1F;
+                        char fstr[128];
+                        memset(fstr, 0, sizeof(fstr));
+                        int fptr = 0;
+                        while (fptr < sizeof(fstr) - 1 && (isdigit(*line) || '.' == *line)) {
+                            fstr[fptr++] = *line;
+                            line++;
+                        }
+                        makeBcdFloat(fstr, &result[ptr], true);
+                        ptr += 8;
                     }
                     while (isdigit(*line)) line++;
                     continue;
