@@ -8,6 +8,8 @@
   - issue: [https://github.com/suzukiplan/msx-disk-manager-cli/issues/9]
 - lsコマンドの実行結果に使用容量と空き容量を表示
   - issue: [https://github.com/suzukiplan/msx-disk-manager-cli/issues/11]
+- テキスト形式の.BASファイルをcreate/putした時に65536以上の数値が想定外の値になる
+  - issue: [https://github.com/suzukiplan/msx-disk-manager-cli/issues/13]
 
 ## Version 1.0
 
