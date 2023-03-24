@@ -51,6 +51,12 @@ static struct BootSector {
     unsigned short sectorPerTrack;
     unsigned short diskSides;
     unsigned short hiddenSector;
+    unsigned char bootJump2[2];
+    unsigned char idLabel[7];
+    unsigned char dirtyFlag;
+    unsigned char idValue[4];
+    unsigned char reserved[5];
+    unsigned char bootProgram[0x1D0];
     int directoryPosition;
     int dataPosition;
 } boot;
@@ -274,23 +280,18 @@ static void extractBootSectorFromDisk()
     memcpy(&boot.sectorPerTrack, &diskImage[0][0x18], 2);
     memcpy(&boot.diskSides, &diskImage[0][0x1A], 2);
     memcpy(&boot.hiddenSector, &diskImage[0][0x1C], 2);
+    memcpy(&boot.bootJump2, &diskImage[0][0x1E], 2);
+    memcpy(&boot.idLabel, &diskImage[0][0x20], 6);
+    memcpy(&boot.dirtyFlag, &diskImage[0][0x26], 1);
+    memcpy(&boot.idValue, &diskImage[0][0x27], 4);
+    memcpy(&boot.reserved, &diskImage[0][0x2B], 5);
+    memcpy(&boot.bootProgram, &diskImage[0][0x30], sizeof(boot.bootProgram));
     boot.directoryPosition = boot.fatPosition + boot.fatSize * boot.fatCopy;
     boot.dataPosition = boot.directoryPosition + 5;
 }
 
 static void extractBootSectorToDisk()
 {
-    unsigned char prg[] = {
-        0xD0, 0xED, 0x53, 0x59, 0xC0, 0x32, 0xD0, 0xC0, 0x36, 0x56, 0x23, 0x36, 0xC0, 0x31, 0x1F, 0xF5,
-        0x11, 0xAB, 0xC0, 0x0E, 0x0F, 0xCD, 0x7D, 0xF3, 0x3C, 0xCA, 0x63, 0xC0, 0x11, 0x00, 0x01, 0x0E,
-        0x1A, 0xCD, 0x7D, 0xF3, 0x21, 0x01, 0x00, 0x22, 0xB9, 0xC0, 0x21, 0x00, 0x3F, 0x11, 0xAB, 0xC0,
-        0x0E, 0x27, 0xCD, 0x7D, 0xF3, 0xC3, 0x00, 0x01, 0x58, 0xC0, 0xCD, 0x00, 0x00, 0x79, 0xE6, 0xFE,
-        0xFE, 0x02, 0xC2, 0x6A, 0xC0, 0x3A, 0xD0, 0xC0, 0xA7, 0xCA, 0x22, 0x40, 0x11, 0x85, 0xC0, 0xCD,
-        0x77, 0xC0, 0x0E, 0x07, 0xCD, 0x7D, 0xF3, 0x18, 0xB4, 0x1A, 0xB7, 0xC8, 0xD5, 0x5F, 0x0E, 0x06,
-        0xCD, 0x7D, 0xF3, 0xD1, 0x13, 0x18, 0xF2, 0x42, 0x6F, 0x6F, 0x74, 0x20, 0x65, 0x72, 0x72, 0x6F,
-        0x72, 0x0D, 0x0A, 0x50, 0x72, 0x65, 0x73, 0x73, 0x20, 0x61, 0x6E, 0x79, 0x20, 0x6B, 0x65, 0x79,
-        0x20, 0x66, 0x6F, 0x72, 0x20, 0x72, 0x65, 0x74, 0x72, 0x79, 0x0D, 0x0A, 0x00, 0x00, 0x4D, 0x53,
-        0x58, 0x44, 0x4F, 0x53, 0x20, 0x20, 0x53, 0x59, 0x53, 0x00};
     memcpy(&diskImage[0][0x00], &boot.bootJump, 3);
     memcpy(&diskImage[0][0x03], &boot.oemName, 8);
     memcpy(&diskImage[0][0xB], &boot.sectorSize, 2);
@@ -304,7 +305,12 @@ static void extractBootSectorToDisk()
     memcpy(&diskImage[0][0x18], &boot.sectorPerTrack, 2);
     memcpy(&diskImage[0][0x1A], &boot.diskSides, 2);
     memcpy(&diskImage[0][0x1C], &boot.hiddenSector, 2);
-    memcpy(&diskImage[0][0x1E], prg, sizeof(prg));
+    memcpy(&diskImage[0][0x1E], &boot.bootJump2, 2);
+    memcpy(&diskImage[0][0x20], &boot.idLabel, 6);
+    memcpy(&diskImage[0][0x26], &boot.dirtyFlag, 1);
+    memcpy(&diskImage[0][0x27], &boot.idValue, 4);
+    memcpy(&diskImage[0][0x2B], &boot.reserved, 5);
+    memcpy(&diskImage[0][0x30], &boot.bootProgram, 0x1D0);
     boot.directoryPosition = boot.fatPosition + boot.fatSize * boot.fatCopy;
     boot.dataPosition = boot.directoryPosition + 5;
 }
@@ -349,6 +355,10 @@ static int info(const char* dsk)
     printf("        Sectors: %d per track\n", boot.sectorPerTrack);
     printf("     Disk Sides: %d\n", boot.diskSides);
     printf(" Hidden Sectors: %d\n", boot.hiddenSector);
+    if (0 == memcmp(boot.idLabel, "VOL_ID", 6)) {
+        printf("      Volume ID: %02X,%02X,%02X,%02X\n", boot.idValue[0], boot.idValue[1], boot.idValue[2], boot.idValue[3]);
+    }
+    printf("     Dirty Flag: %02X\n", boot.dirtyFlag);
     puts("\n[FAT]");
     printf("Fat ID: 0x%02X\n", fat.fatId);
     int usingCluster = 1;
@@ -370,9 +380,21 @@ static int info(const char* dsk)
 static int ls(const char* dsk)
 {
     if (!readDisk(dsk)) return 2;
+    int totalSize = 0;
+    int totalCluster = 0;
+    int fileCount = 0;
+    int cs = boot.sectorSize * boot.clusterSize;
     for (int i = 0; i < dir.entryCount; i++) {
         if (dir.entries[i].removed) continue;
         printf("%02X:%c%c%c%c%c  %-12s  %8u bytes  %4d.%02d.%02d %02d:%02d:%02d  (C:%d, S:%d)\n", dir.entries[i].attr.raw, dir.entries[i].attr.dirent ? 'd' : '-', dir.entries[i].attr.volumeLabel ? 'v' : '-', dir.entries[i].attr.systemFile ? 's' : '-', dir.entries[i].attr.hidden ? 'h' : '-', dir.entries[i].attr.readOnly ? '-' : 'w', dir.entries[i].displayName, dir.entries[i].size, dir.entries[i].date.year, dir.entries[i].date.month, dir.entries[i].date.day, dir.entries[i].date.hour, dir.entries[i].date.minute, dir.entries[i].date.second, dir.entries[i].cluster, boot.dataPosition + (dir.entries[i].cluster - 1) * boot.clusterSize);
+        totalSize += dir.entries[i].size;
+        totalCluster += dir.entries[i].size / cs + (dir.entries[i].size % cs ? 1 : 0);
+        fileCount++;
+    }
+    if (0 < fileCount) {
+        int freeCluster = ((boot.numberOfSector - (boot.dataPosition + 2)) / boot.clusterSize) - totalCluster;
+        printf("Total Size: %7d bytes\n", totalSize);
+        printf(" Free Size: %7d bytes (%d clusters)\n", cs * freeCluster, freeCluster);
     }
     return 0;
 }
@@ -601,9 +623,19 @@ static int create(const char* dskPath)
 {
     // Create Boot Sector
     unsigned char bootJump[3] = {0xEB, 0xFE, 0x90};
-    boot.bootJump[0] = 0xEB;
-    boot.bootJump[1] = 0xFE;
-    boot.bootJump[2] = 0x90;
+    unsigned char bootJump2[2] = {0xD0, 0xED};
+    unsigned char bootProgram[] = {
+        0xC0, 0x0E, 0x0F, 0xCD, 0x7D, 0xF3, 0x3C, 0xCA, 0x63, 0xC0, 0x11, 0x00, 0x01, 0x0E, 0x1A, 0xCD,
+        0x7D, 0xF3, 0x21, 0x01, 0x00, 0x22, 0xB9, 0xC0, 0x21, 0x00, 0x3F, 0x11, 0xAB, 0xC0, 0x0E, 0x27,
+        0xCD, 0x7D, 0xF3, 0xC3, 0x00, 0x01, 0x58, 0xC0, 0xCD, 0x00, 0x00, 0x79, 0xE6, 0xFE, 0xFE, 0x02,
+        0xC2, 0x6A, 0xC0, 0x3A, 0xD0, 0xC0, 0xA7, 0xCA, 0x22, 0x40, 0x11, 0x85, 0xC0, 0xCD, 0x77, 0xC0,
+        0x0E, 0x07, 0xCD, 0x7D, 0xF3, 0x18, 0xB4, 0x1A, 0xB7, 0xC8, 0xD5, 0x5F, 0x0E, 0x06, 0xCD, 0x7D,
+        0xF3, 0xD1, 0x13, 0x18, 0xF2, 0x42, 0x6F, 0x6F, 0x74, 0x20, 0x65, 0x72, 0x72, 0x6F, 0x72, 0x0D,
+        0x0A, 0x50, 0x72, 0x65, 0x73, 0x73, 0x20, 0x61, 0x6E, 0x79, 0x20, 0x6B, 0x65, 0x79, 0x20, 0x66,
+        0x6F, 0x72, 0x20, 0x72, 0x65, 0x74, 0x72, 0x79, 0x0D, 0x0A, 0x00, 0x00, 0x4D, 0x53, 0x58, 0x44,
+        0x4F, 0x53, 0x20, 0x20, 0x53, 0x59, 0x53, 0x00};
+    srand((unsigned int)time(NULL));
+    memcpy(boot.bootJump, bootJump, 3);
     memcpy(boot.oemName, "SZKPLN01", 8);
     boot.sectorSize = 512;
     boot.clusterSize = 2;
@@ -616,6 +648,18 @@ static int create(const char* dskPath)
     boot.sectorPerTrack = 9;
     boot.diskSides = 2;
     boot.hiddenSector = 0;
+    memcpy(boot.bootJump2, bootJump2, 2);
+    memcpy(boot.idLabel, "VOL_ID", 6);
+    boot.dirtyFlag = 0x36;
+    if (0 == boot.idValue[0]) {
+        // 未設定の場合は乱数を設定 (put/rm向けに設定済みの場合は維持)
+        boot.idValue[0] = 0x01 | (rand() & 0xFE);
+        boot.idValue[1] = rand() & 0xFF;
+        boot.idValue[2] = rand() & 0xFF;
+        boot.idValue[3] = rand() & 0xFF;
+    }
+    memset(boot.reserved, 0, 5);
+    memcpy(boot.bootProgram, bootProgram, sizeof(bootProgram));
     extractBootSectorToDisk();
 
     // Create FAT
@@ -775,6 +819,7 @@ static int rm(const char* dsk, char* path)
                 return -1;
             }
             wm(nullptr, data, i);
+            memcpy(cfi.entries[cfi.entryCount].date, dir.entries[i].dateRaw, 4);
             if (!setCreateFileInfo(cfi.entryCount++, dir.entries[i].name, 8, dir.entries[i].ext, 3, data, dir.entries[i].size)) {
                 return -1;
             }
