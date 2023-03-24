@@ -355,7 +355,9 @@ static int info(const char* dsk)
     printf("        Sectors: %d per track\n", boot.sectorPerTrack);
     printf("     Disk Sides: %d\n", boot.diskSides);
     printf(" Hidden Sectors: %d\n", boot.hiddenSector);
-    printf("%15s: %02X,%02X,%02X,%02X\n", boot.idLabel, boot.idValue[0], boot.idValue[1], boot.idValue[2], boot.idValue[3]);
+    if (0 == memcmp(boot.idLabel, "VOL_ID", 6)) {
+        printf("      Volume ID: %02X,%02X,%02X,%02X\n", boot.idValue[0], boot.idValue[1], boot.idValue[2], boot.idValue[3]);
+    }
     printf("     Dirty Flag: %02X\n", boot.dirtyFlag);
     puts("\n[FAT]");
     printf("Fat ID: 0x%02X\n", fat.fatId);
