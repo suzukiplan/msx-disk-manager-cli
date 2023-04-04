@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 1.2
+
+- MSX-DOSのブートに対応
+  - issue: https://github.com/suzukiplan/msx-disk-manager-cli/issues/14
+
 ## Version 1.1
 
 - ブートセクタ修正

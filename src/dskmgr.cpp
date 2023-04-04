@@ -624,7 +624,53 @@ static int create(const char* dskPath)
     // Create Boot Sector
     unsigned char bootJump[3] = {0xEB, 0xFE, 0x90};
     unsigned char bootJump2[2] = {0xD0, 0xED};
-    unsigned char bootProgram[] = {
+    unsigned char dos1[0x1D0] = {
+        0xd0,                   // ret     nc                              ;[0030] d0
+        0xed, 0x53, 0x6a, 0xc0, // ld      ($c06a),de                      ;[0031] ed 53 6a c0
+        0x32, 0x72, 0xc0,       // ld      ($c072),a                       ;[0035] 32 72 c0
+        0x36, 0x67,             // ld      (hl),$67                        ;[0038] 36 67
+        0x23,                   // inc     hl                              ;[003a] 23
+        0x36, 0xc0,             // ld      (hl),$c0                        ;[003b] 36 c0
+        0x31, 0x1f, 0xf5,       // ld      sp,$f51f                        ;[003d] 31 1f f5
+        0x11, 0xab, 0xc0,       // ld      de,$c0ab                        ;[0040] 11 ab c0
+        0x0e, 0x0f,             // ld      c,$0f                           ;[0043] 0e 0f
+        0xcd, 0x7d, 0xf3,       // call    $f37d                           ;[0045] cd 7d f3
+        0x3c,                   // inc     a                               ;[0048] 3c
+        0x28, 0x26,             // jr      z,$0071                         ;[0049] 28 26
+        0x11, 0x00, 0x01,       // ld      de,$0100                        ;[004b] 11 00 01
+        0x0e, 0x1a,             // ld      c,$1a                           ;[004e] 0e 1a
+        0xcd, 0x7d, 0xf3,       // call    $f37d                           ;[0050] cd 7d f3
+        0x21, 0x01, 0x00,       // ld      hl,$0001                        ;[0053] 21 01 00
+        0x22, 0xb9, 0xc0,       // ld      ($c0b9),hl                      ;[0056] 22 b9 c0
+        0x21, 0x00, 0x3f,       // ld      hl,$3f00                        ;[0059] 21 00 3f
+        0x11, 0xab, 0xc0,       // ld      de,$c0ab                        ;[005c] 11 ab c0
+        0x0e, 0x27,             // ld      c,$27                           ;[005f] 0e 27
+        0xcd, 0x7d, 0xf3,       // call    $f37d                           ;[0061] cd 7d f3
+        0xc3, 0x00, 0x01,       // jp      $0100                           ;[0064] c3 00 01
+        0x69,                   // ld      l,c                             ;[0067] 69
+        0xc0,                   // ret     nz                              ;[0068] c0
+        0xcd, 0x00, 0x00,       // call    $0000                           ;[0069] cd 00 00
+        0x79,                   // ld      a,c                             ;[006c] 79
+        0xe6, 0xfe,            // and     $fe                             ;[006d] e6 fe
+        0xd6, 0x02,            // sub     $02                             ;[006f] d6 02
+        0xf6, 0x00,            // or      $00                             ;[0071] f6 00
+        0xca, 0x22, 0x40,      // jp      z,$4022                         ;[0073] ca 22 40
+        0x11, 0x85, 0xc0,      // ld      de,$c085                        ;[0076] 11 85 c0
+        0x0e, 0x09,            // ld      c,$09                           ;[0079] 0e 09
+        0xcd, 0x7d, 0xf3,      // call    $f37d                           ;[007b] cd 7d f3
+        0x0e, 0x07,            // ld      c,$07                           ;[007e] 0e 07
+        0xcd, 0x7d, 0xf3,      // call    $f37d                           ;[0080] cd 7d f3
+        0x18, 0xb8,            // jr      $003d                           ;[0083] 18 b8
+        // 以下データ
+        0x42, 0x6F, 0x6F, 0x74, 0x20, 0x65, 0x72, 0x72, // Boot err
+        0x6F, 0x72, 0x0D, 0x0A, 0x50, 0x72, 0x65, 0x73, // or..Pres
+        0x73, 0x20, 0x61, 0x6E, 0x79, 0x20, 0x6B, 0x65, // s any ke
+        0x79, 0x20, 0x66, 0x6F, 0x72, 0x20, 0x72, 0x65, // y for re
+        0x74, 0x72, 0x79, 0x0D, 0x0A, 0x24, 0x00, 0x4D, // try..$.M
+        0x53, 0x58, 0x44, 0x4F, 0x53, 0x20, 0x20, 0x53, // SXDOS  S
+        0x59, 0x53,                                     // YS
+    };
+    unsigned char dos2[0x1D0] = {
         0xC0, 0x0E, 0x0F, 0xCD, 0x7D, 0xF3, 0x3C, 0xCA, 0x63, 0xC0, 0x11, 0x00, 0x01, 0x0E, 0x1A, 0xCD,
         0x7D, 0xF3, 0x21, 0x01, 0x00, 0x22, 0xB9, 0xC0, 0x21, 0x00, 0x3F, 0x11, 0xAB, 0xC0, 0x0E, 0x27,
         0xCD, 0x7D, 0xF3, 0xC3, 0x00, 0x01, 0x58, 0xC0, 0xCD, 0x00, 0x00, 0x79, 0xE6, 0xFE, 0xFE, 0x02,
@@ -659,7 +705,7 @@ static int create(const char* dskPath)
         boot.idValue[3] = rand() & 0xFF;
     }
     memset(boot.reserved, 0, 5);
-    memcpy(boot.bootProgram, bootProgram, sizeof(bootProgram));
+    memcpy(boot.bootProgram, dos1, sizeof(dos1)); // 暫定的にDOS1のブートプログラムを設定
     extractBootSectorToDisk();
 
     // Create FAT
@@ -710,6 +756,8 @@ static int create(const char* dskPath)
     }
 
     // Create Directory & File Content
+    bool isDOS1 = false;
+    bool isDOS2 = false;
     unsigned char* d = &diskImage[boot.directoryPosition][0];
     for (int i = 0; i < cfi.entryCount; i++) {
         // Directory
@@ -725,9 +773,20 @@ static int create(const char* dskPath)
         d += 2;
         memcpy(d, &cfi.entries[i].size, 4);
         d += 4;
+        // Check MSXDOS.SYS or MSXDOS2.SYS
+        if (0 == memcmp(cfi.entries[i].ext, "SYS", 3)) {
+            isDOS1 = 0 == memcmp(cfi.entries[i].name, "MSXDOS  ", 8);
+            isDOS2 = 0 == memcmp(cfi.entries[i].name, "MSXDOS2 ", 8);
+        }
         // File Content
         memcpy(diskImage[boot.dataPosition + (cfi.entries[i].clusterStart - 1) * boot.clusterSize], cfi.entries[i].data, cfi.entries[i].size);
     }
+
+    // update boot program to DOS2 from DOS1
+    if (isDOS2) {
+        memcpy(boot.bootProgram, dos2, sizeof(dos2));
+        extractBootSectorToDisk();
+    }    
 
     // Write Disk Image
     FILE* fp = fopen(dskPath, "wb");
