@@ -651,16 +651,16 @@ static int create(const char* dskPath)
         0xc0,                   // ret     nz                              ;[0068] c0
         0xcd, 0x00, 0x00,       // call    $0000                           ;[0069] cd 00 00
         0x79,                   // ld      a,c                             ;[006c] 79
-        0xe6, 0xfe,            // and     $fe                             ;[006d] e6 fe
-        0xd6, 0x02,            // sub     $02                             ;[006f] d6 02
-        0xf6, 0x00,            // or      $00                             ;[0071] f6 00
-        0xca, 0x22, 0x40,      // jp      z,$4022                         ;[0073] ca 22 40
-        0x11, 0x85, 0xc0,      // ld      de,$c085                        ;[0076] 11 85 c0
-        0x0e, 0x09,            // ld      c,$09                           ;[0079] 0e 09
-        0xcd, 0x7d, 0xf3,      // call    $f37d                           ;[007b] cd 7d f3
-        0x0e, 0x07,            // ld      c,$07                           ;[007e] 0e 07
-        0xcd, 0x7d, 0xf3,      // call    $f37d                           ;[0080] cd 7d f3
-        0x18, 0xb8,            // jr      $003d                           ;[0083] 18 b8
+        0xe6, 0xfe,             // and     $fe                             ;[006d] e6 fe
+        0xd6, 0x02,             // sub     $02                             ;[006f] d6 02
+        0xf6, 0x00,             // or      $00                             ;[0071] f6 00
+        0xca, 0x22, 0x40,       // jp      z,$4022                         ;[0073] ca 22 40
+        0x11, 0x85, 0xc0,       // ld      de,$c085                        ;[0076] 11 85 c0
+        0x0e, 0x09,             // ld      c,$09                           ;[0079] 0e 09
+        0xcd, 0x7d, 0xf3,       // call    $f37d                           ;[007b] cd 7d f3
+        0x0e, 0x07,             // ld      c,$07                           ;[007e] 0e 07
+        0xcd, 0x7d, 0xf3,       // call    $f37d                           ;[0080] cd 7d f3
+        0x18, 0xb8,             // jr      $003d                           ;[0083] 18 b8
         // 以下データ
         0x42, 0x6F, 0x6F, 0x74, 0x20, 0x65, 0x72, 0x72, // Boot err
         0x6F, 0x72, 0x0D, 0x0A, 0x50, 0x72, 0x65, 0x73, // or..Pres
@@ -786,7 +786,7 @@ static int create(const char* dskPath)
     if (isDOS2) {
         memcpy(boot.bootProgram, dos2, sizeof(dos2));
         extractBootSectorToDisk();
-    }    
+    }
 
     // Write Disk Image
     FILE* fp = fopen(dskPath, "wb");
